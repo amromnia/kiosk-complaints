@@ -135,33 +135,33 @@ export default function AdminDashboard() {
   const stats = getStats();
   
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100">
+    <div className="min-h-screen bg-linear-to-br from-blue-50 to-blue-100">
       <DashboardHeader user={user} />
       
       <main className="container-custom py-8">
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-8">
-          <div className="card bg-gradient-to-br from-blue-500 to-blue-600 text-white">
+          <div className="card bg-linear-to-br from-blue-500 to-blue-600 text-white">
             <h3 className="text-sm font-semibold mb-2">إجمالي الشكاوى</h3>
             <p className="text-3xl font-bold">{stats.total}</p>
           </div>
           
-          <div className="card bg-gradient-to-br from-purple-500 to-purple-600 text-white">
+          <div className="card bg-linear-to-br from-purple-500 to-purple-600 text-white">
             <h3 className="text-sm font-semibold mb-2">جديدة</h3>
             <p className="text-3xl font-bold">{stats.new}</p>
           </div>
           
-          <div className="card bg-gradient-to-br from-yellow-500 to-yellow-600 text-white">
+          <div className="card bg-linear-to-br from-yellow-500 to-yellow-600 text-white">
             <h3 className="text-sm font-semibold mb-2">معينة</h3>
             <p className="text-3xl font-bold">{stats.assigned}</p>
           </div>
           
-          <div className="card bg-gradient-to-br from-orange-500 to-orange-600 text-white">
+          <div className="card bg-linear-to-br from-orange-500 to-orange-600 text-white">
             <h3 className="text-sm font-semibold mb-2">قيد المعالجة</h3>
             <p className="text-3xl font-bold">{stats.in_progress}</p>
           </div>
           
-          <div className="card bg-gradient-to-br from-green-500 to-green-600 text-white">
+          <div className="card bg-linear-to-br from-green-500 to-green-600 text-white">
             <h3 className="text-sm font-semibold mb-2">مغلقة</h3>
             <p className="text-3xl font-bold">{stats.closed}</p>
           </div>
@@ -170,7 +170,7 @@ export default function AdminDashboard() {
         {/* Actions Bar */}
         <div className="card mb-8">
           <div className="flex flex-wrap gap-4 items-center justify-between">
-            <h2 className="text-2xl font-bold text-[var(--primary)]">إدارة الشكاوى</h2>
+            <h2 className="text-2xl font-bold text-(--primary)">إدارة الشكاوى</h2>
             
             <div className="flex gap-2">
               <button

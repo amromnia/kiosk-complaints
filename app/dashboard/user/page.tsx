@@ -99,28 +99,28 @@ export default function UserDashboard() {
   const stats = getStats();
   
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100">
+    <div className="min-h-screen bg-linear-to-br from-blue-50 to-blue-100">
       <DashboardHeader user={user} />
       
       <main className="container-custom py-8">
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-          <div className="card bg-gradient-to-br from-blue-500 to-blue-600 text-white">
+          <div className="card bg-linear-to-br from-blue-500 to-blue-600 text-white">
             <h3 className="text-sm font-semibold mb-2">إجمالي المكلف بها</h3>
             <p className="text-3xl font-bold">{stats.total}</p>
           </div>
           
-          <div className="card bg-gradient-to-br from-yellow-500 to-yellow-600 text-white">
+          <div className="card bg-linear-to-br from-yellow-500 to-yellow-600 text-white">
             <h3 className="text-sm font-semibold mb-2">قيد المعالجة</h3>
             <p className="text-3xl font-bold">{stats.in_progress}</p>
           </div>
           
-          <div className="card bg-gradient-to-br from-orange-500 to-orange-600 text-white">
+          <div className="card bg-linear-to-br from-orange-500 to-orange-600 text-white">
             <h3 className="text-sm font-semibold mb-2">محلولة</h3>
             <p className="text-3xl font-bold">{stats.resolved}</p>
           </div>
           
-          <div className="card bg-gradient-to-br from-green-500 to-green-600 text-white">
+          <div className="card bg-linear-to-br from-green-500 to-green-600 text-white">
             <h3 className="text-sm font-semibold mb-2">مغلقة</h3>
             <p className="text-3xl font-bold">{stats.closed}</p>
           </div>
@@ -128,7 +128,7 @@ export default function UserDashboard() {
         
         {/* Header */}
         <div className="card mb-8">
-          <h2 className="text-2xl font-bold text-[var(--primary)]">الشكاوى المكلف بها</h2>
+          <h2 className="text-2xl font-bold text-(--primary)">الشكاوى المكلف بها</h2>
           <p className="text-gray-600 mt-2">هذه هي الشكاوى المكلف بمعالجتها</p>
         </div>
         

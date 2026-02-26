@@ -30,7 +30,7 @@ export default function ComplaintCard({ complaint, onClick }: ComplaintCardProps
     >
       <div className="flex justify-between items-start mb-4">
         <div>
-          <h3 className="text-xl font-bold text-[var(--primary)]">
+          <h3 className="text-xl font-bold text-(--primary)">
             شكوى #{complaint.id}
           </h3>
           <p className="text-sm text-gray-500">{complaint.type_name}</p>

@@ -38,7 +38,7 @@ export default function DashboardHeader({ user }: DashboardHeaderProps) {
           
           <button
             onClick={handleLogout}
-            className="btn bg-white text-[var(--primary)] hover:bg-blue-50 px-4 py-2"
+            className="btn bg-white text-(--primary) hover:bg-blue-50 px-4 py-2"
           >
             تسجيل الخروج
           </button>

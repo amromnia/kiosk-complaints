@@ -87,7 +87,7 @@ export default function RegisterPage() {
   
   if (success) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-linear-to-br from-blue-50 to-blue-100 flex items-center justify-center p-4">
         <div className="card max-w-md w-full text-center">
           <div className="mb-6">
             <svg className="w-20 h-20 mx-auto text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -104,15 +104,15 @@ export default function RegisterPage() {
   }
   
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-linear-to-br from-blue-50 to-blue-100 flex items-center justify-center p-4">
       <div className="card max-w-md w-full">
         <div className="text-center mb-8">
-          <div className="w-20 h-20 bg-gradient-to-br from-[var(--primary)] to-[var(--primary-dark)] rounded-full mx-auto mb-4 flex items-center justify-center">
+          <div className="w-20 h-20 bg-linear-to-br from-(--primary) to-(--primary-dark) rounded-full mx-auto mb-4 flex items-center justify-center">
             <svg className="w-12 h-12 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
             </svg>
           </div>
-          <h1 className="text-3xl font-bold text-[var(--primary)]">تسجيل موظف جديد</h1>
+          <h1 className="text-3xl font-bold text-(--primary)">تسجيل موظف جديد</h1>
           <p className="text-gray-600 mt-2">وزارة الداخلية - نظام إدارة الشكاوى</p>
         </div>
         
@@ -196,7 +196,7 @@ export default function RegisterPage() {
         <div className="mt-6 pt-6 border-t border-gray-200">
           <p className="text-sm text-gray-600 text-center">
             لديك حساب بالفعل؟{' '}
-            <a href="/login" className="text-[var(--primary)] font-semibold hover:underline">
+            <a href="/login" className="text-(--primary) font-semibold hover:underline">
               تسجيل الدخول
             </a>
           </p>
