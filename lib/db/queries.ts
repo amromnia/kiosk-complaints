@@ -180,6 +180,22 @@ export const getAllKiosks = () => {
   return db.prepare('SELECT * FROM kiosks ORDER BY location').all();
 };
 
+export const getKioskById = (id: number) => {
+  return db.prepare('SELECT * FROM kiosks WHERE id = ?').get(id);
+};
+
+export const createKiosk = (uniqueLink: string, location: string) => {
+  return db.prepare('INSERT INTO kiosks (unique_link, location) VALUES (?, ?)').run(uniqueLink, location);
+};
+
+export const updateKiosk = (id: number, location: string) => {
+  return db.prepare('UPDATE kiosks SET location = ? WHERE id = ?').run(location, id);
+};
+
+export const deleteKiosk = (id: number) => {
+  return db.prepare('DELETE FROM kiosks WHERE id = ?').run(id);
+};
+
 // Attachment Queries
 export const createAttachment = (complaintId: number, filePath: string, fileType: string, uploadedBy: string) => {
   return db.prepare(`

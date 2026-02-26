@@ -19,368 +19,250 @@ interface Kiosk {
 export default function ComplaintPage() {
   const params = useParams();
   const kioskLink = params.kiosk as string;
-  
+
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [complaintId, setComplaintId] = useState<number | null>(null);
   const [error, setError] = useState('');
-  
   const [complaintTypes, setComplaintTypes] = useState<ComplaintType[]>([]);
   const [kiosk, setKiosk] = useState<Kiosk | null>(null);
-  
   const [formData, setFormData] = useState({
     client_phone: '',
     client_national_id: '',
     client_name: '',
     complaint_type_id: '',
-    description: ''
+    description: '',
   });
-  
   const [files, setFiles] = useState<File[]>([]);
-  const [uploadedFiles, setUploadedFiles] = useState<any[]>([]);
-  
+
   const selectedType = complaintTypes.find(t => t.id === parseInt(formData.complaint_type_id));
-  
+
   useEffect(() => {
     fetchComplaintTypes();
     fetchKiosk();
   }, []);
-  
+
   const fetchComplaintTypes = async () => {
     try {
       const res = await fetch('/api/complaint-types');
       const data = await res.json();
       setComplaintTypes(data.types);
-    } catch (err) {
-      console.error('Error fetching complaint types:', err);
-    }
+    } catch (err) { console.error('Error fetching complaint types:', err); }
   };
-  
+
   const fetchKiosk = async () => {
     try {
       const res = await fetch('/api/kiosks');
       const data = await res.json();
-      const foundKiosk = data.kiosks.find((k: Kiosk) => k.unique_link === kioskLink);
-      setKiosk(foundKiosk || null);
-    } catch (err) {
-      console.error('Error fetching kiosk:', err);
-    }
+      const found = data.kiosks.find((k: Kiosk) => k.unique_link === kioskLink);
+      setKiosk(found || null);
+    } catch (err) { console.error('Error fetching kiosk:', err); }
   };
-  
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      const selectedFiles = Array.from(e.target.files);
-      setFiles(selectedFiles);
-    }
+    if (e.target.files) setFiles(Array.from(e.target.files));
   };
-  
+
   const uploadFiles = async () => {
     const uploaded = [];
-    
     for (const file of files) {
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('uploadedBy', 'client');
-      
+      const fd = new FormData();
+      fd.append('file', file);
+      fd.append('uploadedBy', 'client');
       try {
-        const res = await fetch('/api/upload', {
-          method: 'POST',
-          body: formData
-        });
-        
+        const res = await fetch('/api/upload', { method: 'POST', body: fd });
         const data = await res.json();
-        
-        if (data.success) {
-          uploaded.push({
-            path: data.path,
-            type: data.type,
-            filename: data.filename
-          });
-        }
-      } catch (err) {
-        console.error('Upload error:', err);
-      }
+        if (data.success) uploaded.push({ path: data.path, type: data.type, filename: data.filename });
+      } catch (err) { console.error('Upload error:', err); }
     }
-    
     return uploaded;
   };
-  
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setLoading(true);
-    
     try {
-      // Validate required fields
-      if (!formData.client_phone || !formData.client_national_id || !formData.client_name || 
+      if (!formData.client_phone || !formData.client_national_id || !formData.client_name ||
           !formData.complaint_type_id || !formData.description) {
         setError('جميع الحقول مطلوبة');
         setLoading(false);
         return;
       }
-      
-      // Check if image is required
       if (selectedType?.requires_image && files.length === 0) {
         setError('يجب إرفاق صورة لهذا النوع من الشكاوى');
         setLoading(false);
         return;
       }
-      
-      // Upload files if any
       let attachments: any[] = [];
-      if (files.length > 0) {
-        attachments = await uploadFiles();
-      }
-      
-      // Submit complaint
+      if (files.length > 0) attachments = await uploadFiles();
+
       const res = await fetch('/api/complaints/submit', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          ...formData,
-          kiosk_link: kioskLink,
-          attachments
-        })
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...formData, kiosk_link: kioskLink, attachments }),
       });
-      
       const data = await res.json();
-      
       if (data.success) {
         setSubmitted(true);
         setComplaintId(data.complaint_id);
       } else {
         setError(data.error || 'حدث خطأ أثناء تسجيل الشكوى');
       }
-    } catch (err) {
+    } catch {
       setError('حدث خطأ أثناء تسجيل الشكوى');
-      console.error('Submit error:', err);
-    } finally {
-      setLoading(false);
-    }
+    } finally { setLoading(false); }
   };
-  
+
+  /* ===== SUCCESS STATE ===== */
   if (submitted) {
     return (
-      <div className="min-h-screen bg-linear-to-br from-blue-50 to-blue-100 flex items-center justify-center p-4">
-        <div className="card max-w-2xl w-full text-center">
-          <div className="mb-6">
-            <svg className="w-20 h-20 mx-auto text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
+      <div className="min-h-screen" style={{ background: '#f0f4f8' }}>
+        <Header kiosk={kiosk} />
+        <main className="container-app py-12">
+          <div className="max-w-lg mx-auto card text-center animate-fade-in">
+            <div className="w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center" style={{ background: '#d1fae5' }}>
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#065f46" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>
+              </svg>
+            </div>
+            <h1 className="text-2xl font-bold mb-2" style={{ color: '#065f46' }}>تم تسجيل الشكوى بنجاح!</h1>
+            <p className="text-lg mb-1" style={{ color: '#1e293b' }}>رقم الشكوى: <span className="font-bold" style={{ color: '#1b2a4a' }}>#{complaintId}</span></p>
+            <p className="text-sm mb-8" style={{ color: '#64748b' }}>سيتم التواصل معكم قريباً لحل المشكلة. شكراً لتواصلكم معنا.</p>
+            <button
+              onClick={() => { setSubmitted(false); setFormData({ client_phone: '', client_national_id: '', client_name: '', complaint_type_id: '', description: '' }); setFiles([]); setComplaintId(null); }}
+              className="btn btn-primary"
+            >تقديم شكوى أخرى</button>
           </div>
-          <h1 className="text-3xl font-bold text-green-600 mb-4">تم تسجيل الشكوى بنجاح!</h1>
-          <p className="text-xl mb-4">رقم الشكوى: <span className="font-bold text-(--primary)">#{complaintId}</span></p>
-          <p className="text-gray-600 mb-8">
-            سيتم التواصل معكم قريباً لحل المشكلة. شكراً لتواصلكم معنا.
-          </p>
-          <button 
-            onClick={() => {
-              setSubmitted(false);
-              setFormData({
-                client_phone: '',
-                client_national_id: '',
-                client_name: '',
-                complaint_type_id: '',
-                description: ''
-              });
-              setFiles([]);
-              setComplaintId(null);
-            }}
-            className="btn btn-primary"
-          >
-            تقديم شكوى أخرى
-          </button>
-        </div>
+        </main>
       </div>
     );
   }
-  
+
+  /* ===== FORM STATE ===== */
   return (
-    <div className="min-h-screen bg-linear-to-br from-blue-50 to-blue-100">
-      {/* Header */}
-      <header className="gov-header py-6">
-        <div className="container-custom">
-          <h1 className="text-3xl font-bold text-center">نظام شكاوى ماكينات التجديد الذاتي</h1>
-          <p className="text-center mt-2 text-blue-100">وزارة الداخلية - جمهورية مصر العربية</p>
-          {kiosk && (
-            <p className="text-center mt-2 text-yellow-300">الموقع: {kiosk.location}</p>
-          )}
-        </div>
-      </header>
-      
-      {/* Main Content */}
-      <main className="container-custom py-12">
-        <div className="max-w-3xl mx-auto">
-          <div className="card">
-            <h2 className="text-2xl font-bold mb-6 text-center text-(--primary)">تقديم شكوى</h2>
-            
+    <div className="min-h-screen flex flex-col" style={{ background: '#f0f4f8' }}>
+      <Header kiosk={kiosk} />
+
+      <main className="container-app py-8 sm:py-12 flex-1">
+        <div className="max-w-2xl mx-auto">
+          {/* Form card */}
+          <div className="card animate-fade-in">
+            <div className="mb-6 text-center">
+              <h2 className="text-xl font-bold" style={{ color: '#1b2a4a' }}>تقديم شكوى</h2>
+              <p className="text-sm mt-1" style={{ color: '#94a3b8' }}>يرجى ملء جميع الحقول المطلوبة بدقة</p>
+            </div>
+
             {error && (
-              <div className="bg-red-100 border-r-4 border-red-500 text-red-700 p-4 mb-6 rounded">
-                <p className="font-bold">خطأ</p>
-                <p>{error}</p>
+              <div className="alert alert-error mb-6">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+                <span>{error}</span>
               </div>
             )}
-            
-            <form onSubmit={handleSubmit} className="space-y-6">
-              {/* Phone Number */}
-              <div>
-                <label className="label">رقم الهاتف *</label>
-                <input
-                  type="tel"
-                  className="input"
-                  placeholder="01xxxxxxxxx"
-                  value={formData.client_phone}
-                  onChange={(e) => setFormData({ ...formData, client_phone: e.target.value })}
-                  required
-                  pattern="01[0-2,5][0-9]{8}"
-                  maxLength={11}
-                />
-                <p className="text-sm text-gray-500 mt-1">أدخل رقم الهاتف المكون من 11 رقم</p>
+
+            <form onSubmit={handleSubmit} className="space-y-5">
+              {/* Two columns on wider screens */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                <div>
+                  <label className="form-label">رقم الهاتف *</label>
+                  <input type="tel" className="form-input" placeholder="01xxxxxxxxx" value={formData.client_phone}
+                    onChange={(e) => setFormData({ ...formData, client_phone: e.target.value })} required pattern="01[0-2,5][0-9]{8}" maxLength={11} />
+                  <p className="text-xs mt-1" style={{ color: '#94a3b8' }}>رقم مكون من 11 رقم</p>
+                </div>
+                <div>
+                  <label className="form-label">الرقم القومي *</label>
+                  <input type="text" className="form-input" placeholder="xxxxxxxxxxxxxxxx" value={formData.client_national_id}
+                    onChange={(e) => setFormData({ ...formData, client_national_id: e.target.value })} required pattern="[0-9]{14}" maxLength={14} />
+                  <p className="text-xs mt-1" style={{ color: '#94a3b8' }}>رقم مكون من 14 رقم</p>
+                </div>
               </div>
-              
-              {/* National ID */}
+
               <div>
-                <label className="label">الرقم القومي *</label>
-                <input
-                  type="text"
-                  className="input"
-                  placeholder="xxxxxxxxxxxxxxxx"
-                  value={formData.client_national_id}
-                  onChange={(e) => setFormData({ ...formData, client_national_id: e.target.value })}
-                  required
-                  pattern="[0-9]{14}"
-                  maxLength={14}
-                />
-                <p className="text-sm text-gray-500 mt-1">أدخل الرقم القومي المكون من 14 رقم</p>
+                <label className="form-label">الاسم الكامل *</label>
+                <input type="text" className="form-input" placeholder="أدخل اسمك الكامل" value={formData.client_name}
+                  onChange={(e) => setFormData({ ...formData, client_name: e.target.value })} required />
               </div>
-              
-              {/* Full Name */}
+
               <div>
-                <label className="label">الاسم الكامل *</label>
-                <input
-                  type="text"
-                  className="input"
-                  placeholder="أدخل اسمك الكامل"
-                  value={formData.client_name}
-                  onChange={(e) => setFormData({ ...formData, client_name: e.target.value })}
-                  required
-                />
-              </div>
-              
-              {/* Complaint Type */}
-              <div>
-                <label className="label">نوع الشكوى *</label>
-                <select
-                  className="input"
-                  value={formData.complaint_type_id}
-                  onChange={(e) => setFormData({ ...formData, complaint_type_id: e.target.value })}
-                  required
-                >
+                <label className="form-label">نوع الشكوى *</label>
+                <select className="form-input" value={formData.complaint_type_id}
+                  onChange={(e) => setFormData({ ...formData, complaint_type_id: e.target.value })} required>
                   <option value="">اختر نوع الشكوى</option>
                   {complaintTypes.map(type => (
-                    <option key={type.id} value={type.id}>
-                      {type.name_ar}
-                      {type.requires_image && ' (يتطلب صورة)'}
-                    </option>
+                    <option key={type.id} value={type.id}>{type.name_ar}{type.requires_image && ' (يتطلب صورة)'}</option>
                   ))}
                 </select>
               </div>
-              
-              {/* Description */}
+
               <div>
-                <label className="label">وصف المشكلة *</label>
-                <textarea
-                  className="input"
-                  rows={5}
-                  placeholder="اشرح المشكلة بالتفصيل... (حد أقصى 500 حرف)"
-                  value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  required
-                  maxLength={500}
-                />
-                <p className="text-sm text-gray-500 mt-1">
-                  {formData.description.length} / 500 حرف
-                </p>
+                <label className="form-label">وصف المشكلة *</label>
+                <textarea className="form-input" rows={4} placeholder="اشرح المشكلة بالتفصيل..." value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })} required maxLength={500} />
+                <p className="text-xs mt-1 text-left" style={{ color: '#94a3b8' }}>{formData.description.length} / 500</p>
               </div>
-              
-              {/* File Upload */}
+
               <div>
-                <label className="label">
-                  إرفاق صور {selectedType?.requires_image && '*'}
-                </label>
-                <input
-                  type="file"
-                  className="input"
-                  accept="image/jpeg,image/jpg,image/png,image/webp"
-                  multiple
-                  onChange={handleFileChange}
-                  required={selectedType?.requires_image}
-                />
-                <p className="text-sm text-gray-500 mt-1">
-                  يمكنك إرفاق صور بصيغة JPG, PNG, WEBP (حد أقصى 10 ميجابايت لكل ملف)
-                </p>
+                <label className="form-label">إرفاق صور {selectedType?.requires_image && '*'}</label>
+                <div className="relative">
+                  <input type="file" className="form-input" style={{ padding: '10px 16px' }}
+                    accept="image/jpeg,image/jpg,image/png,image/webp" multiple onChange={handleFileChange} required={selectedType?.requires_image} />
+                </div>
+                <p className="text-xs mt-1" style={{ color: '#94a3b8' }}>JPG, PNG, WEBP — حد أقصى 10 ميجابايت</p>
                 {files.length > 0 && (
-                  <div className="mt-2">
-                    <p className="text-sm font-semibold">الملفات المحددة:</p>
-                    <ul className="list-disc list-inside text-sm text-gray-600">
-                      {Array.from(files).map((file, idx) => (
-                        <li key={idx}>{file.name}</li>
-                      ))}
-                    </ul>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {files.map((file, idx) => (
+                      <span key={idx} className="badge" style={{ background: '#eff6ff', color: '#1e40af' }}>{file.name}</span>
+                    ))}
                   </div>
                 )}
               </div>
-              
-              {/* Submit Button */}
-              <div className="pt-4">
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className={`btn btn-primary w-full text-lg ${loading ? 'btn-disabled' : ''}`}
-                >
-                  {loading ? (
-                    <span className="flex items-center justify-center">
-                      <span className="spinner mr-2"></span>
-                      جاري التسجيل...
-                    </span>
-                  ) : (
-                    'تقديم الشكوى'
-                  )}
-                </button>
-              </div>
+
+              <button type="submit" disabled={loading} className="btn btn-primary btn-lg w-full">
+                {loading ? (
+                  <span className="flex items-center justify-center gap-2"><span className="spinner" />جاري التسجيل...</span>
+                ) : 'تقديم الشكوى'}
+              </button>
             </form>
           </div>
-          
-          {/* Info Section */}
-          <div className="mt-8 bg-blue-50 border-r-4 border-blue-500 p-6 rounded-lg">
-            <h3 className="font-bold text-lg mb-3 text-blue-900">معلومات هامة:</h3>
-            <ul className="space-y-2 text-gray-700">
-              <li className="flex items-start">
-                <span className="text-blue-500 ml-2">•</span>
-                سيتم معالجة شكواكم في أقرب وقت ممكن
-              </li>
-              <li className="flex items-start">
-                <span className="text-blue-500 ml-2">•</span>
-                يرجى التأكد من صحة رقم الهاتف للتواصل معكم
-              </li>
-              <li className="flex items-start">
-                <span className="text-blue-500 ml-2">•</span>
-                احتفظ برقم الشكوى للمتابعة
-              </li>
-            </ul>
+
+          {/* Info box */}
+          <div className="alert alert-info mt-6">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="shrink-0 mt-0.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+            <div className="space-y-1 text-sm">
+              <p>سيتم معالجة شكواكم في أقرب وقت ممكن</p>
+              <p>يرجى التأكد من صحة رقم الهاتف للتواصل معكم</p>
+              <p>احتفظ برقم الشكوى للمتابعة</p>
+            </div>
           </div>
         </div>
       </main>
-      
+
       {/* Footer */}
-      <footer className="gov-header py-6 mt-12">
-        <div className="container-custom text-center">
-          <p>© 2026 وزارة الداخلية - جمهورية مصر العربية</p>
-          <p className="text-sm mt-2 text-blue-100">جميع الحقوق محفوظة</p>
+      <footer className="gov-header py-5 mt-auto">
+        <div className="container-app text-center">
+          <p className="text-sm opacity-80">© 2026 وزارة الداخلية — جمهورية مصر العربية</p>
         </div>
       </footer>
     </div>
+  );
+}
+
+/* ===== SUB-COMPONENTS ===== */
+function Header({ kiosk }: { kiosk: Kiosk | null }) {
+  return (
+    <header className="gov-header py-5 sm:py-6">
+      <div className="container-app text-center">
+        <div className="flex items-center justify-center gap-3 mb-2">
+          <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.12)' }}>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.5"><path d="M12 2L3 7v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-9-5z"/></svg>
+          </div>
+          <h1 className="text-xl sm:text-2xl font-bold">نظام شكاوى ماكينات التجديد الذاتي</h1>
+        </div>
+        <p className="text-sm opacity-60">وزارة الداخلية — جمهورية مصر العربية</p>
+        {kiosk && (
+          <p className="text-sm mt-1 font-medium" style={{ color: '#c8a84e' }}>الموقع: {kiosk.location}</p>
+        )}
+      </div>
+    </header>
   );
 }

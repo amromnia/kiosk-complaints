@@ -2,9 +2,25 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth/session';
 import { 
   getComplaintById,
+  getComplaintComments,
   createComment,
   createNotification
 } from '@/lib/db/queries';
+
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    await requireAuth();
+    const { id } = await params;
+    const comments = getComplaintComments(parseInt(id));
+    return NextResponse.json({ comments });
+  } catch (error: any) {
+    console.error('Get comments error:', error);
+    return NextResponse.json({ error: error.message || 'حدث خطأ' }, { status: 500 });
+  }
+}
 
 export async function POST(
   request: NextRequest,
