@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import DashboardShell from '@/components/DashboardShell';
 import { formatDate, STATUS_LABELS_AR, PRIORITY_LABELS_AR, calculateTimeElapsed } from '@/lib/utils/constants';
 
 export default function UserComplaintDetailPage() {
@@ -68,27 +67,23 @@ export default function UserComplaintDetailPage() {
   };
 
   if (loading) return (
-    <DashboardShell requiredRole="user">
-      <div className="empty-state"><div className="spinner spinner-dark spinner-lg"></div></div>
-    </DashboardShell>
+    <div className="empty-state"><div className="spinner spinner-dark spinner-lg"></div></div>
   );
 
   if (!complaint) return (
-    <DashboardShell requiredRole="user">
-      <div className="empty-state">
-        <p>الشكوى غير موجودة</p>
-        <button className="btn-primary mt-3" onClick={() => router.push('/dashboard/user')}>العودة</button>
-      </div>
-    </DashboardShell>
+    <div className="empty-state">
+      <p>الشكوى غير موجودة</p>
+      <button className="btn btn-primary mt-3" onClick={() => router.push('/dashboard/user')}>العودة</button>
+    </div>
   );
 
   const allowedStatuses = ['assigned', 'in_progress', 'resolved'];
 
   return (
-    <DashboardShell requiredRole="user">
+    <>
       <div className="page-header">
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-          <button onClick={() => router.push('/dashboard/user')} className="btn-secondary" style={{ padding: '6px 12px' }}>
+          <button onClick={() => router.push('/dashboard/user')} className="btn btn-secondary" style={{ padding: '6px 12px' }}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 12H5M12 19l7-7-7-7"/></svg>
           </button>
           <div>
@@ -169,7 +164,7 @@ export default function UserComplaintDetailPage() {
             <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: 16 }}>
               <textarea className="form-input" rows={3} placeholder="أضف تعليقاً..." value={commentText} onChange={e => setCommentText(e.target.value)} />
               <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 8 }}>
-                <button className="btn-primary" disabled={submitting || !commentText.trim()} onClick={handleComment} style={{ padding: '6px 16px' }}>
+                <button className="btn btn-primary" disabled={submitting || !commentText.trim()} onClick={handleComment} style={{ padding: '6px 16px' }}>
                   {submitting ? 'جاري الإرسال...' : 'إضافة تعليق'}
                 </button>
               </div>
@@ -207,12 +202,12 @@ export default function UserComplaintDetailPage() {
             <select className="form-input mb-3" value={newStatus} onChange={e => setNewStatus(e.target.value)}>
               {allowedStatuses.map(s => <option key={s} value={s}>{(STATUS_LABELS_AR as any)[s]}</option>)}
             </select>
-            <button className="btn-warning w-full" disabled={changingStatus || newStatus === complaint.status} onClick={handleStatusChange}>
+            <button className="btn btn-warning w-full" disabled={changingStatus || newStatus === complaint.status} onClick={handleStatusChange}>
               {changingStatus ? 'جاري التحديث...' : 'تحديث الحالة'}
             </button>
           </div>
         </div>
       </div>
-    </DashboardShell>
+    </>
   );
 }

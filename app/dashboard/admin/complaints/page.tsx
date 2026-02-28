@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import DashboardShell from '@/components/DashboardShell';
 import { formatDate, STATUS_LABELS_AR, PRIORITY_LABELS_AR } from '@/lib/utils/constants';
 
 export default function AdminComplaintsPage() {
@@ -41,7 +40,7 @@ export default function AdminComplaintsPage() {
   };
 
   return (
-    <DashboardShell requiredRole="admin">
+    <>
       <div className="page-header">
         <div>
           <h1>جميع الشكاوى</h1>
@@ -125,6 +124,6 @@ export default function AdminComplaintsPage() {
           </table>
         </div>
       )}
-    </DashboardShell>
+    </>
   );
 }

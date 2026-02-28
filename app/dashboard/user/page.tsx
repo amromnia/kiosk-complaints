@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import DashboardShell from '@/components/DashboardShell';
 import ComplaintCard from '@/components/ComplaintCard';
 
 const STAT_COLORS = [
@@ -48,7 +47,7 @@ export default function UserDashboard() {
   ];
 
   return (
-    <DashboardShell requiredRole="user">
+    <>
       <div className="page-header">
         <div>
           <h1>الشكاوى المكلف بها</h1>
@@ -99,6 +98,6 @@ export default function UserDashboard() {
           ))}
         </div>
       )}
-    </DashboardShell>
+    </>
   );
 }

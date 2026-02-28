@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import DashboardShell from '@/components/DashboardShell';
 import { formatDate } from '@/lib/utils/constants';
 
 export default function AdminKiosksPage() {
@@ -81,13 +80,13 @@ export default function AdminKiosksPage() {
   };
 
   return (
-    <DashboardShell requiredRole="admin">
+    <>
       <div className="page-header">
         <div>
           <h1>إدارة الماكينات</h1>
           <p className="text-sm" style={{ color: 'var(--color-text-muted)' }}>إضافة وتعديل وحذف ماكينات الشكاوى وروابطها</p>
         </div>
-        <button className="btn-primary" onClick={openCreateModal}>
+        <button className="btn btn-primary" onClick={openCreateModal}>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 5v14M5 12h14"/></svg>
           إضافة ماكينة
         </button>
@@ -99,7 +98,7 @@ export default function AdminKiosksPage() {
         <div className="empty-state">
           <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
           <p>لا توجد ماكينات مسجلة بعد</p>
-          <button className="btn-primary mt-3" onClick={openCreateModal}>إضافة ماكينة</button>
+          <button className="btn btn-primary mt-3" onClick={openCreateModal}>إضافة ماكينة</button>
         </div>
       ) : (
         <div className="table-wrapper">
@@ -126,14 +125,14 @@ export default function AdminKiosksPage() {
                   <td style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)' }}>{formatDate(kiosk.created_at)}</td>
                   <td>
                     <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                      <button className="btn-info" style={{ fontSize: '0.8rem', padding: '4px 10px' }} onClick={() => copyLink(kiosk)}>
+                      <button className="btn btn-info" style={{ fontSize: '0.8rem', padding: '4px 10px' }} onClick={() => copyLink(kiosk)}>
                         {copiedId === kiosk.id ? 'تم ✓' : 'نسخ الرابط'}
                       </button>
-                      <button className="btn-warning" style={{ fontSize: '0.8rem', padding: '4px 10px' }} onClick={() => openEditModal(kiosk)}>
+                      <button className="btn btn-warning" style={{ fontSize: '0.8rem', padding: '4px 10px' }} onClick={() => openEditModal(kiosk)}>
                         تعديل
                       </button>
                       <button
-                        className="btn-danger"
+                        className="btn btn-danger"
                         style={{ fontSize: '0.8rem', padding: '4px 10px' }}
                         disabled={deletingId === kiosk.id}
                         onClick={() => handleDelete(kiosk.id)}
@@ -169,14 +168,14 @@ export default function AdminKiosksPage() {
               />
             </div>
             <div className="modal-footer">
-              <button className="btn-secondary" onClick={() => setShowModal(false)}>إلغاء</button>
-              <button className="btn-primary" disabled={saving || !formLocation.trim()} onClick={handleSave}>
+              <button className="btn btn-secondary" onClick={() => setShowModal(false)}>إلغاء</button>
+              <button className="btn btn-primary" disabled={saving || !formLocation.trim()} onClick={handleSave}>
                 {saving ? 'جاري الحفظ...' : editingKiosk ? 'حفظ التعديلات' : 'إضافة'}
               </button>
             </div>
           </div>
         </div>
       )}
-    </DashboardShell>
+    </>
   );
 }

@@ -1,10 +1,11 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import DashboardShell from '@/components/DashboardShell';
+import { useRouter } from 'next/navigation';
 import { formatDate, ROLE_LABELS_AR } from '@/lib/utils/constants';
 
 export default function AdminUsersPage() {
+  const router = useRouter();
   const [users, setUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [regLink, setRegLink] = useState('');
@@ -57,7 +58,7 @@ export default function AdminUsersPage() {
   };
 
   return (
-    <DashboardShell requiredRole="admin">
+    <>
       <div className="page-header">
         <div>
           <h1>إدارة الموظفين</h1>
@@ -96,7 +97,7 @@ export default function AdminUsersPage() {
             </thead>
             <tbody>
               {users.map((user, i) => (
-                <tr key={user.id}>
+                <tr key={user.id} onClick={() => router.push(`/dashboard/admin/users/${user.id}`)} style={{ cursor: 'pointer' }}>
                   <td>{i + 1}</td>
                   <td style={{ fontWeight: 600 }}>{user.name}</td>
                   <td>{user.email}</td>
@@ -114,10 +115,10 @@ export default function AdminUsersPage() {
                   <td>
                     {user.role !== 'admin' && (
                       <button
-                        className={user.status === 'active' ? 'btn-danger' : 'btn-success'}
+                        className={`btn ${user.status === 'active' ? 'btn-danger' : 'btn-success'}`}
                         style={{ fontSize: '0.8rem', padding: '4px 12px' }}
                         disabled={togglingId === user.id}
-                        onClick={() => toggleUserStatus(user.id, user.status)}
+                        onClick={(e) => { e.stopPropagation(); toggleUserStatus(user.id, user.status); }}
                       >
                         {togglingId === user.id ? '...' : user.status === 'active' ? 'تعطيل' : 'تفعيل'}
                       </button>
@@ -150,17 +151,17 @@ export default function AdminUsersPage() {
                   value={regLink}
                   style={{ flex: 1, direction: 'ltr', textAlign: 'left' }}
                 />
-                <button className="btn-primary" onClick={copyLink} style={{ whiteSpace: 'nowrap' }}>
+                <button className="btn btn-primary" onClick={copyLink} style={{ whiteSpace: 'nowrap' }}>
                   {copied ? 'تم النسخ ✓' : 'نسخ'}
                 </button>
               </div>
             </div>
             <div className="modal-footer">
-              <button className="btn-secondary" onClick={() => setShowLinkModal(false)}>إغلاق</button>
+              <button className="btn btn-secondary" onClick={() => setShowLinkModal(false)}>إغلاق</button>
             </div>
           </div>
         </div>
       )}
-    </DashboardShell>
+    </>
   );
 }

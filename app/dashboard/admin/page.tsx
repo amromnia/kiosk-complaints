@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import DashboardShell from '@/components/DashboardShell';
 import ComplaintCard from '@/components/ComplaintCard';
 
 const STAT_COLORS = [
@@ -61,7 +60,7 @@ export default function AdminDashboard() {
   ];
 
   return (
-    <DashboardShell requiredRole="admin">
+    <>
       <div className="page-header">
         <div>
           <h1>لوحة التحكم</h1>
@@ -123,6 +122,6 @@ export default function AdminDashboard() {
           ))}
         </div>
       )}
-    </DashboardShell>
+    </>
   );
 }

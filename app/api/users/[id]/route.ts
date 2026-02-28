@@ -2,6 +2,27 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/auth/session';
 import { getUserById, updateUserStatus } from '@/lib/db/queries';
 
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  try {
+    await requireAdmin();
+    const { id } = await params;
+    const userId = parseInt(id, 10);
+    const user = getUserById(userId) as any;
+    
+    if (!user) {
+      return NextResponse.json({ error: 'المستخدم غير موجود' }, { status: 404 });
+    }
+    
+    // Remove password from response
+    delete user.password;
+    
+    return NextResponse.json({ success: true, user });
+  } catch (error: any) {
+    console.error('Get user error:', error);
+    return NextResponse.json({ error: error.message || 'حدث خطأ' }, { status: 500 });
+  }
+}
+
 export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     await requireAdmin();

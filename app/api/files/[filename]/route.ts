@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { readFile } from 'fs/promises';
 import path from 'path';
 import { getSession } from '@/lib/auth/session';
-import { getComplaintAttachments } from '@/lib/db/queries';
+import db from '@/lib/db/schema';
 
 export async function GET(
   request: NextRequest,
@@ -11,7 +11,7 @@ export async function GET(
   try {
     const { filename } = await params;
     
-    // Verify user is authenticated (for security)
+    // Verify user is authenticated
     const session = await getSession();
     if (!session) {
       return NextResponse.json(
@@ -20,12 +20,41 @@ export async function GET(
       );
     }
     
+    // Extract just the filename without path separators
+    const cleanFilename = path.basename(filename);
+    
+    // Check if user has permission to access this file
+    // Find which complaint this attachment belongs to
+    const attachment = db.prepare(`
+      SELECT a.*, c.assigned_user_id 
+      FROM attachments a
+      JOIN complaints c ON a.complaint_id = c.id
+      WHERE a.file_path LIKE ?
+    `).get(`%${cleanFilename}%`) as any;
+    
+    if (!attachment) {
+      return NextResponse.json(
+        { error: 'الملف غير موجود' },
+        { status: 404 }
+      );
+    }
+    
+    // Authorization check:
+    // - Admins can access all files
+    // - Users can only access files for complaints assigned to them
+    if (session.role !== 'admin' && attachment.assigned_user_id !== session.id) {
+      return NextResponse.json(
+        { error: 'غير مصرح بالوصول لهذا الملف' },
+        { status: 403 }
+      );
+    }
+    
     // Read file
-    const filePath = path.join(process.cwd(), 'uploads', filename);
+    const filePath = path.join(process.cwd(), 'uploads', cleanFilename);
     const fileBuffer = await readFile(filePath);
     
     // Determine content type
-    const ext = filename.split('.').pop()?.toLowerCase();
+    const ext = cleanFilename.split('.').pop()?.toLowerCase();
     let contentType = 'application/octet-stream';
     
     if (ext === 'jpg' || ext === 'jpeg') contentType = 'image/jpeg';
@@ -38,7 +67,7 @@ export async function GET(
     return new NextResponse(fileBuffer, {
       headers: {
         'Content-Type': contentType,
-        'Content-Disposition': `inline; filename="${filename}"`,
+        'Content-Disposition': `inline; filename="${cleanFilename}"`,
         'Cache-Control': 'private, max-age=3600'
       }
     });

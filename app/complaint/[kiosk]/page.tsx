@@ -117,40 +117,60 @@ export default function ComplaintPage() {
   /* ===== SUCCESS STATE ===== */
   if (submitted) {
     return (
-      <div className="min-h-screen" style={{ background: '#f0f4f8' }}>
+      <div className="min-h-screen flex flex-col" style={{ background: 'var(--color-bg)' }}>
         <Header kiosk={kiosk} />
-        <main className="container-app py-12">
-          <div className="max-w-lg mx-auto card text-center animate-fade-in">
-            <div className="w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center" style={{ background: '#d1fae5' }}>
-              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#065f46" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>
-              </svg>
+        <main className="flex-1 flex items-center justify-center py-12 px-4">
+          <div className="w-full max-w-lg">
+            <div className="card text-center animate-fade-in" style={{ padding: '48px 32px' }}>
+              <div className="w-24 h-24 rounded-full mx-auto mb-6 flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%)' }}>
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#065f46" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>
+                </svg>
+              </div>
+              <h1 className="text-3xl font-bold mb-3" style={{ color: '#065f46' }}>تم تسجيل الشكوى بنجاح!</h1>
+              <div className="mb-6 p-4 rounded-lg" style={{ background: '#f0fdf4', border: '2px solid #86efac' }}>
+                <p className="text-sm mb-2" style={{ color: '#166534' }}>رقم الشكوى</p>
+                <p className="text-4xl font-bold" style={{ color: '#065f46' }}>#{complaintId}</p>
+              </div>
+              <p className="text-base mb-8" style={{ color: 'var(--color-text-secondary)', lineHeight: '1.7' }}>
+                سيتم التواصل معكم قريباً لحل المشكلة.<br/>
+                شكراً لتواصلكم معنا.
+              </p>
+              <button
+                onClick={() => { 
+                  setSubmitted(false); 
+                  setFormData({ client_phone: '', client_national_id: '', client_name: '', complaint_type_id: '', description: '' }); 
+                  setFiles([]); 
+                  setComplaintId(null); 
+                }}
+                className="btn btn-primary btn-lg"
+              >
+                تقديم شكوى أخرى
+              </button>
             </div>
-            <h1 className="text-2xl font-bold mb-2" style={{ color: '#065f46' }}>تم تسجيل الشكوى بنجاح!</h1>
-            <p className="text-lg mb-1" style={{ color: '#1e293b' }}>رقم الشكوى: <span className="font-bold" style={{ color: '#1b2a4a' }}>#{complaintId}</span></p>
-            <p className="text-sm mb-8" style={{ color: '#64748b' }}>سيتم التواصل معكم قريباً لحل المشكلة. شكراً لتواصلكم معنا.</p>
-            <button
-              onClick={() => { setSubmitted(false); setFormData({ client_phone: '', client_national_id: '', client_name: '', complaint_type_id: '', description: '' }); setFiles([]); setComplaintId(null); }}
-              className="btn btn-primary"
-            >تقديم شكوى أخرى</button>
           </div>
         </main>
+        <footer style={{ background: 'var(--color-navy)', color: 'white', padding: '24px 0' }}>
+          <div className="container-app text-center">
+            <p className="text-sm opacity-90">© 2026 وزارة الداخلية — جمهورية مصر العربية</p>
+          </div>
+        </footer>
       </div>
     );
   }
 
   /* ===== FORM STATE ===== */
   return (
-    <div className="min-h-screen flex flex-col" style={{ background: '#f0f4f8' }}>
+    <div className="min-h-screen flex flex-col" style={{ background: 'var(--color-bg)' }}>
       <Header kiosk={kiosk} />
 
-      <main className="container-app py-8 sm:py-12 flex-1">
-        <div className="max-w-2xl mx-auto">
+      <main className="flex-1 flex items-center justify-center py-8 px-4">
+        <div className="w-full max-w-3xl">
           {/* Form card */}
           <div className="card animate-fade-in">
-            <div className="mb-6 text-center">
-              <h2 className="text-xl font-bold" style={{ color: '#1b2a4a' }}>تقديم شكوى</h2>
-              <p className="text-sm mt-1" style={{ color: '#94a3b8' }}>يرجى ملء جميع الحقول المطلوبة بدقة</p>
+            <div className="mb-6 text-center pb-4" style={{ borderBottom: '2px solid var(--color-border)' }}>
+              <h2 className="text-2xl font-bold mb-2" style={{ color: 'var(--color-navy)' }}>تقديم شكوى</h2>
+              <p className="text-sm" style={{ color: 'var(--color-text-muted)' }}>يرجى ملء جميع الحقول المطلوبة بدقة</p>
             </div>
 
             {error && (
@@ -226,21 +246,42 @@ export default function ComplaintPage() {
           </div>
 
           {/* Info box */}
-          <div className="alert alert-info mt-6">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="shrink-0 mt-0.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
-            <div className="space-y-1 text-sm">
-              <p>سيتم معالجة شكواكم في أقرب وقت ممكن</p>
-              <p>يرجى التأكد من صحة رقم الهاتف للتواصل معكم</p>
-              <p>احتفظ برقم الشكوى للمتابعة</p>
+          <div className="mt-8 p-6 rounded-xl" style={{ background: 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)', border: '1px solid #bfdbfe' }}>
+            <div className="flex items-start gap-4">
+              <div className="shrink-0 w-12 h-12 rounded-full flex items-center justify-center" style={{ background: '#3b82f6' }}>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+              </div>
+              <div className="flex-1 space-y-2 text-sm" style={{ color: '#1e40af' }}>
+                <p className="font-medium">ملاحظات مهمة:</p>
+                <ul className="space-y-1 mr-4" style={{ listStyle: 'disc' }}>
+                  <li>سيتم معالجة شكواكم في أقرب وقت ممكن</li>
+                  <li>يرجى التأكد من صحة رقم الهاتف للتواصل معكم</li>
+                  <li>احتفظ برقم الشكوى للمتابعة</li>
+                </ul>
+              </div>
             </div>
           </div>
         </div>
       </main>
 
       {/* Footer */}
-      <footer className="gov-header py-5 mt-auto">
-        <div className="container-app text-center">
-          <p className="text-sm opacity-80">© 2026 وزارة الداخلية — جمهورية مصر العربية</p>
+      <footer style={{ background: 'var(--color-navy)', color: 'white', padding: '24px 0' }}>
+        <div className="container-app">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.12)' }}>
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.5"><path d="M12 2L3 7v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-9-5z"/></svg>
+              </div>
+              <div>
+                <p className="font-medium">وزارة الداخلية</p>
+                <p className="text-xs opacity-75">جمهورية مصر العربية</p>
+              </div>
+            </div>
+            <div className="text-center md:text-right">
+              <p className="text-sm opacity-90">نظام شكاوى ماكينات التجديد الذاتي</p>
+              <p className="text-xs opacity-75 mt-1">© 2026 جميع الحقوق محفوظة</p>
+            </div>
+          </div>
         </div>
       </footer>
     </div>
@@ -250,18 +291,25 @@ export default function ComplaintPage() {
 /* ===== SUB-COMPONENTS ===== */
 function Header({ kiosk }: { kiosk: Kiosk | null }) {
   return (
-    <header className="gov-header py-5 sm:py-6">
-      <div className="container-app text-center">
-        <div className="flex items-center justify-center gap-3 mb-2">
-          <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.12)' }}>
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.5"><path d="M12 2L3 7v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-9-5z"/></svg>
+    <header style={{ background: 'linear-gradient(135deg, var(--color-navy) 0%, var(--color-navy-light) 100%)', color: 'white', padding: '32px 0', boxShadow: '0 4px 20px rgba(0,0,0,0.1)' }}>
+      <div className="container-app">
+        <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <div className="w-16 h-16 rounded-full flex items-center justify-center" style={{ background: 'rgba(200,168,78,0.2)', border: '2px solid var(--color-gold)' }}>
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--color-gold)" strokeWidth="1.5"><path d="M12 2L3 7v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-9-5z"/></svg>
+            </div>
+            <div>
+              <h1 className="text-2xl md:text-3xl font-bold mb-1">نظام شكاوى ماكينات التجديد الذاتي</h1>
+              <p className="text-sm opacity-90">وزارة الداخلية — جمهورية مصر العربية</p>
+            </div>
           </div>
-          <h1 className="text-xl sm:text-2xl font-bold">نظام شكاوى ماكينات التجديد الذاتي</h1>
+          {kiosk && (
+            <div className="px-6 py-3 rounded-lg text-center" style={{ background: 'rgba(200,168,78,0.15)', border: '1px solid var(--color-gold)' }}>
+              <p className="text-xs opacity-75 mb-1">الموقع</p>
+              <p className="font-bold text-lg" style={{ color: 'var(--color-gold)' }}>{kiosk.location}</p>
+            </div>
+          )}
         </div>
-        <p className="text-sm opacity-60">وزارة الداخلية — جمهورية مصر العربية</p>
-        {kiosk && (
-          <p className="text-sm mt-1 font-medium" style={{ color: '#c8a84e' }}>الموقع: {kiosk.location}</p>
-        )}
       </div>
     </header>
   );
