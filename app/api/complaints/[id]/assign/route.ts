@@ -3,7 +3,8 @@ import { requireAdmin } from '@/lib/auth/session';
 import { 
   getComplaintById,
   assignComplaint,
-  createNotification
+  createNotification,
+  createStatusHistory
 } from '@/lib/db/queries';
 
 export async function POST(
@@ -32,8 +33,22 @@ export async function POST(
       );
     }
     
-    // Assign complaint
+    const oldStatus = complaint.status;
+    
+    // Assign complaint (also updates status to 'assigned')
     assignComplaint(complaintId, user_id);
+    
+    // Create status history if status changed
+    if (oldStatus !== 'assigned') {
+      const session = await requireAdmin();
+      createStatusHistory(
+        complaintId,
+        session.id,
+        oldStatus,
+        'assigned',
+        `تم تكليف الشكوى إلى موظف`
+      );
+    }
     
     // Notify user
     createNotification(

@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { formatDate, STATUS_LABELS_AR, PRIORITY_LABELS_AR, calculateTimeElapsed } from '@/lib/utils/constants';
+import { getAllowedStatusTransitions } from '@/lib/utils/status-workflow';
 
 export default function UserComplaintDetailPage() {
   const router = useRouter();
@@ -15,6 +16,7 @@ export default function UserComplaintDetailPage() {
   const [submitting, setSubmitting] = useState(false);
   const [newStatus, setNewStatus] = useState('');
   const [changingStatus, setChangingStatus] = useState(false);
+  const [statusChangeDescription, setStatusChangeDescription] = useState('');
 
   useEffect(() => { fetchAll(); }, [id]);
 
@@ -29,7 +31,6 @@ export default function UserComplaintDetailPage() {
       setComplaint(compData.complaint || null);
       setComments(commentsData.comments || []);
       setAttachments(compData.attachments || []);
-      if (compData.complaint) setNewStatus(compData.complaint.status);
     } catch (err) { console.error(err); }
     finally { setLoading(false); }
   };
@@ -53,15 +54,19 @@ export default function UserComplaintDetailPage() {
   };
 
   const handleStatusChange = async () => {
-    if (!newStatus || newStatus === complaint?.status) return;
+    if (!newStatus || !statusChangeDescription.trim()) return;
     setChangingStatus(true);
     try {
       const res = await fetch(`/api/complaints/${id}/status`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: newStatus })
+        body: JSON.stringify({ status: newStatus, description: statusChangeDescription })
       });
-      if (res.ok) await fetchAll();
+      if (res.ok) {
+        setNewStatus('');
+        setStatusChangeDescription('');
+        await fetchAll();
+      }
     } catch (err) { console.error(err); }
     finally { setChangingStatus(false); }
   };
@@ -76,8 +81,6 @@ export default function UserComplaintDetailPage() {
       <button className="btn btn-primary mt-3" onClick={() => router.push('/dashboard/user')}>العودة</button>
     </div>
   );
-
-  const allowedStatuses = ['assigned', 'in_progress', 'resolved'];
 
   return (
     <>
@@ -196,13 +199,23 @@ export default function UserComplaintDetailPage() {
             </div>
           </div>
 
-          {/* Status change (user can mark in_progress or resolved) */}
+          {/* Status change */}
           <div className="card">
             <h3 className="text-base font-bold mb-3" style={{ color: 'var(--color-navy)', borderBottom: '1px solid #e2e8f0', paddingBottom: 12 }}>تحديث الحالة</h3>
             <select className="form-input mb-3" value={newStatus} onChange={e => setNewStatus(e.target.value)}>
-              {allowedStatuses.map(s => <option key={s} value={s}>{(STATUS_LABELS_AR as any)[s]}</option>)}
+              <option value="">اختر الحالة الجديدة...</option>
+              {getAllowedStatusTransitions(complaint.status).map(status => (
+                <option key={status} value={status}>{(STATUS_LABELS_AR as any)[status]}</option>
+              ))}
             </select>
-            <button className="btn btn-warning w-full" disabled={changingStatus || newStatus === complaint.status} onClick={handleStatusChange}>
+            <textarea
+              className="form-input mb-3"
+              rows={2}
+              placeholder="سبب التغيير (مطلوب)..."
+              value={statusChangeDescription}
+              onChange={e => setStatusChangeDescription(e.target.value)}
+            />
+            <button className="btn btn-warning w-full" disabled={changingStatus || !newStatus || !statusChangeDescription.trim()} onClick={handleStatusChange}>
               {changingStatus ? 'جاري التحديث...' : 'تحديث الحالة'}
             </button>
           </div>

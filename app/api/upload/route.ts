@@ -61,7 +61,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       filename,
-      path: `/uploads/${filename}`,
+      path: filename,
       size: file.size,
       type: ext
     });

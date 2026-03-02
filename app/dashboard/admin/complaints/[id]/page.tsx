@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { formatDate, STATUS_LABELS_AR, PRIORITY_LABELS_AR, calculateTimeElapsed } from '@/lib/utils/constants';
+import { getAllowedStatusTransitions } from '@/lib/utils/status-workflow';
 
 export default function AdminComplaintDetailPage() {
   const router = useRouter();
@@ -20,6 +21,7 @@ export default function AdminComplaintDetailPage() {
   const [assigning, setAssigning] = useState(false);
   const [changingStatus, setChangingStatus] = useState(false);
   const [newStatus, setNewStatus] = useState('');
+  const [statusChangeDescription, setStatusChangeDescription] = useState('');
 
   useEffect(() => { fetchAll(); }, [id]);
 
@@ -40,7 +42,6 @@ export default function AdminComplaintDetailPage() {
       setStatusHistory(compData.history || []);
       setActiveUsers((usersData.users || []).filter((u: any) => u.role === 'user' && u.status === 'active'));
       if (compData.complaint) {
-        setNewStatus(compData.complaint.status);
         setAssigningTo(compData.complaint.assigned_user_id?.toString() || '');
       }
     } catch (err) { console.error(err); }
@@ -62,15 +63,19 @@ export default function AdminComplaintDetailPage() {
   };
 
   const handleStatusChange = async () => {
-    if (!newStatus || newStatus === complaint?.status) return;
+    if (!newStatus || !statusChangeDescription.trim()) return;
     setChangingStatus(true);
     try {
       const res = await fetch(`/api/complaints/${id}/status`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: newStatus })
+        body: JSON.stringify({ status: newStatus, description: statusChangeDescription })
       });
-      if (res.ok) await fetchAll();
+      if (res.ok) {
+        setNewStatus('');
+        setStatusChangeDescription('');
+        await fetchAll();
+      }
     } catch (err) { console.error(err); }
     finally { setChangingStatus(false); }
   };
@@ -262,9 +267,19 @@ export default function AdminComplaintDetailPage() {
           <div className="card">
             <h3 className="text-base font-bold mb-3" style={{ color: 'var(--color-navy)', borderBottom: '1px solid #e2e8f0', paddingBottom: 12 }}>تغيير الحالة</h3>
             <select className="form-input mb-3" value={newStatus} onChange={e => setNewStatus(e.target.value)}>
-              {Object.entries(STATUS_LABELS_AR).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+              <option value="">اختر الحالة الجديدة...</option>
+              {getAllowedStatusTransitions(complaint.status).map(status => (
+                <option key={status} value={status}>{(STATUS_LABELS_AR as any)[status]}</option>
+              ))}
             </select>
-            <button className="btn btn-warning w-full" disabled={changingStatus || newStatus === complaint.status} onClick={handleStatusChange}>
+            <textarea
+              className="form-input mb-3"
+              rows={2}
+              placeholder="سبب التغيير (مطلوب)..."
+              value={statusChangeDescription}
+              onChange={e => setStatusChangeDescription(e.target.value)}
+            />
+            <button className="btn btn-warning w-full" disabled={changingStatus || !newStatus || !statusChangeDescription.trim()} onClick={handleStatusChange}>
               {changingStatus ? 'جاري التحديث...' : 'تحديث الحالة'}
             </button>
           </div>

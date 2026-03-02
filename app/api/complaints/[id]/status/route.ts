@@ -6,8 +6,9 @@ import {
   createStatusHistory,
   createNotification
 } from '@/lib/db/queries';
+import { isValidStatusTransition, getStatusTransitionError } from '@/lib/utils/status-workflow';
 
-export async function POST(
+export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
@@ -42,6 +43,14 @@ export async function POST(
     }
     
     const oldStatus = complaint.status;
+    
+    // Validate status transition
+    if (!isValidStatusTransition(oldStatus, status)) {
+      return NextResponse.json(
+        { error: getStatusTransitionError(oldStatus, status) },
+        { status: 400 }
+      );
+    }
     
     // Update status
     updateComplaintStatus(complaintId, status);

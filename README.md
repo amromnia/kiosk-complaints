@@ -181,7 +181,7 @@ kiosk-complaints/
 - `POST /api/complaints/submit` - تقديم شكوى
 - `GET /api/complaints` - عرض الشكاوى
 - `GET /api/complaints/[id]` - تفاصيل شكوى
-- `POST /api/complaints/[id]/status` - تحديث الحالة
+- `PUT /api/complaints/[id]/status` - تحديث الحالة
 - `POST /api/complaints/[id]/assign` - تكليف موظف
 - `POST /api/complaints/[id]/comments` - إضافة تعليق
 
