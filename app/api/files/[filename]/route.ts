@@ -40,9 +40,9 @@ export async function GET(
     }
     
     // Authorization check:
-    // - Admins can access all files
+    // - Admins and superadmins can access all files
     // - Users can only access files for complaints assigned to them
-    if (session.role !== 'admin' && attachment.assigned_user_id !== session.id) {
+    if (session.role !== 'admin' && session.role !== 'superadmin' && attachment.assigned_user_id !== session.id) {
       return NextResponse.json(
         { error: 'غير مصرح بالوصول لهذا الملف' },
         { status: 403 }

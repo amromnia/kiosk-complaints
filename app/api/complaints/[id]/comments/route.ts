@@ -57,7 +57,7 @@ export async function POST(
     }
     
     // Create comment
-    createComment(complaintId, session.id, comment_text, is_internal || true);
+    createComment(complaintId, session.id, comment_text, !!is_internal);
     
     // Notify relevant users
     if (complaint.assigned_user_id && complaint.assigned_user_id !== session.id) {

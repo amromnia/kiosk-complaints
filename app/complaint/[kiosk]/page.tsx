@@ -209,7 +209,7 @@ export default function ComplaintPage() {
                   onChange={(e) => setFormData({ ...formData, complaint_type_id: e.target.value })} required>
                   <option value="">اختر نوع الشكوى</option>
                   {complaintTypes.map(type => (
-                    <option key={type.id} value={type.id}>{type.name_ar}{type.requires_image && ' (يتطلب صورة)'}</option>
+                    <option key={type.id} value={type.id}>{type.name_ar}{type.requires_image ? ' (يتطلب صورة)' : ''}</option>
                   ))}
                 </select>
               </div>
