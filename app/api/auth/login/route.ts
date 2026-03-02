@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { authenticateUser, setSession } from '@/lib/auth/session';
+import { getRateLimiter } from '@/lib/rate-limit';
 
 export async function POST(request: NextRequest) {
   try {
@@ -15,6 +16,14 @@ export async function POST(request: NextRequest) {
     const user = await authenticateUser(email, password);
     
     if (!user) {
+      // Record auth failure for progressive delays
+      const forwarded = request.headers.get('x-forwarded-for');
+      const ip = forwarded ? forwarded.split(',')[0].trim() : 'unknown';
+      const identifier = `ip:${ip}`;
+      
+      const rateLimiter = getRateLimiter();
+      await rateLimiter.recordAuthFailure(identifier);
+      
       return NextResponse.json(
         { error: 'بيانات الدخول غير صحيحة' },
         { status: 401 }

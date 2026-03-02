@@ -1,35 +1,12 @@
-import { SignJWT, jwtVerify } from 'jose';
 import { cookies } from 'next/headers';
 import bcrypt from 'bcryptjs';
 import { getUserByEmail, getUserById } from '../db/queries';
+import { createToken, verifyToken } from './jwt';
+import type { UserSession } from './jwt';
 
-const SECRET_KEY = new TextEncoder().encode(
-  process.env.JWT_SECRET || 'kiosk-complaints-secret-key-change-in-production'
-);
-
-export interface UserSession {
-  id: number;
-  email: string;
-  name: string;
-  role: 'superadmin' | 'admin' | 'user';
-}
-
-export async function createToken(user: UserSession) {
-  return await new SignJWT({ ...user })
-    .setProtectedHeader({ alg: 'HS256' })
-    .setIssuedAt()
-    .setExpirationTime('24h')
-    .sign(SECRET_KEY);
-}
-
-export async function verifyToken(token: string): Promise<UserSession | null> {
-  try {
-    const verified = await jwtVerify(token, SECRET_KEY);
-    return verified.payload as unknown as UserSession;
-  } catch (error) {
-    return null;
-  }
-}
+// Re-export from jwt.ts for backwards compatibility
+export { createToken, verifyToken } from './jwt';
+export type { UserSession } from './jwt';
 
 export async function getSession(): Promise<UserSession | null> {
   const cookieStore = await cookies();
