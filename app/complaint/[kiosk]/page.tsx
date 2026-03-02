@@ -14,6 +14,9 @@ export default function ComplaintPage() {
   const params = useParams();
   const kioskLink = params.kiosk as string;
 
+  const [kiosk, setKiosk] = useState<any>(null);
+  const [kioskLoading, setKioskLoading] = useState(true);
+  const [kioskNotFound, setKioskNotFound] = useState(false);
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [complaintId, setComplaintId] = useState<number | null>(null);
@@ -31,8 +34,28 @@ export default function ComplaintPage() {
   const selectedType = complaintTypes.find(t => t.id === parseInt(formData.complaint_type_id));
 
   useEffect(() => {
+    fetchKiosk();
     fetchComplaintTypes();
-  }, []);
+  }, [kioskLink]);
+
+  const fetchKiosk = async () => {
+    setKioskLoading(true);
+    try {
+      const res = await fetch(`/api/kiosks/by-link/${kioskLink}`);
+      if (res.ok) {
+        const data = await res.json();
+        setKiosk(data.kiosk);
+        setKioskNotFound(false);
+      } else {
+        setKioskNotFound(true);
+      }
+    } catch (err) {
+      console.error('Error fetching kiosk:', err);
+      setKioskNotFound(true);
+    } finally {
+      setKioskLoading(false);
+    }
+  };
 
   const fetchComplaintTypes = async () => {
     try {
@@ -97,11 +120,51 @@ export default function ComplaintPage() {
     } finally { setLoading(false); }
   };
 
+  /* ===== LOADING STATE ===== */
+  if (kioskLoading) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center" style={{ background: 'var(--color-bg)' }}>
+        <div className="spinner spinner-dark spinner-lg"></div>
+        <p className="mt-4" style={{ color: 'var(--color-text-muted)' }}>جاري التحميل...</p>
+      </div>
+    );
+  }
+
+  /* ===== 404 STATE ===== */
+  if (kioskNotFound || !kiosk) {
+    return (
+      <div className="min-h-screen flex flex-col" style={{ background: 'var(--color-bg)' }}>
+        <Header kioskLocation={null} />
+        <main className="flex-1 flex items-center justify-center py-12 px-4">
+          <div className="w-full max-w-lg">
+            <div className="card text-center" style={{ padding: '48px 32px' }}>
+              <div className="w-24 h-24 rounded-full mx-auto mb-6 flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #fee2e2 0%, #fecaca 100%)' }}>
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#dc2626" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>
+                </svg>
+              </div>
+              <h1 className="text-3xl font-bold mb-3" style={{ color: '#dc2626' }}>الماكينة غير موجودة</h1>
+              <p className="text-base mb-6" style={{ color: 'var(--color-text-secondary)', lineHeight: '1.7' }}>
+                هذا الرابط غير صحيح أو أن الماكينة معطلة حالياً.<br/>
+                يرجى التحقق من الرابط أو التواصل مع الدعم الفني.
+              </p>
+            </div>
+          </div>
+        </main>
+        <footer style={{ background: 'var(--color-navy)', color: 'white', padding: '24px 0' }}>
+          <div className="container-app text-center">
+            <p className="text-sm opacity-90">© 2026 وزارة الداخلية — جمهورية مصر العربية</p>
+          </div>
+        </footer>
+      </div>
+    );
+  }
+
   /* ===== SUCCESS STATE ===== */
   if (submitted) {
     return (
       <div className="min-h-screen flex flex-col" style={{ background: 'var(--color-bg)' }}>
-        <Header />
+        <Header kioskLocation={kiosk.location} />
         <main className="flex-1 flex items-center justify-center py-12 px-4">
           <div className="w-full max-w-lg">
             <div className="card text-center animate-fade-in" style={{ padding: '48px 32px' }}>
@@ -145,7 +208,7 @@ export default function ComplaintPage() {
   /* ===== FORM STATE ===== */
   return (
     <div className="min-h-screen flex flex-col" style={{ background: 'var(--color-bg)' }}>
-      <Header />
+      <Header kioskLocation={kiosk.location} />
 
       <main className="flex-1 flex items-center justify-center py-8 px-4">
         <div className="w-full max-w-3xl">
@@ -272,7 +335,7 @@ export default function ComplaintPage() {
 }
 
 /* ===== SUB-COMPONENTS ===== */
-function Header() {
+function Header({ kioskLocation }: { kioskLocation: string | null }) {
   return (
     <header style={{ background: 'linear-gradient(135deg, var(--color-navy) 0%, var(--color-navy-light) 100%)', color: 'white', padding: '32px 0', boxShadow: '0 4px 20px rgba(0,0,0,0.1)' }}>
       <div className="container-app">
@@ -286,6 +349,12 @@ function Header() {
               <p className="text-sm opacity-90">وزارة الداخلية — جمهورية مصر العربية</p>
             </div>
           </div>
+          {kioskLocation && (
+            <div className="text-center md:text-right">
+              <p className="text-xs opacity-75 mb-1">الموقع</p>
+              <p className="text-lg font-semibold">{kioskLocation}</p>
+            </div>
+          )}
         </div>
       </div>
     </header>

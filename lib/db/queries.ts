@@ -383,7 +383,7 @@ export const getComplaintsPaginated = (filters?: {
   pageSize?: number;
 }) => {
   const page = filters?.page || 1;
-  const pageSize = filters?.pageSize || 20;
+  const pageSize = Math.min(filters?.pageSize || 20, 100); // Max 100 items per page
   const offset = (page - 1) * pageSize;
 
   let query = `
@@ -472,7 +472,7 @@ export const getUsersPaginated = (filters?: {
   pageSize?: number;
 }) => {
   const page = filters?.page || 1;
-  const pageSize = filters?.pageSize || 20;
+  const pageSize = Math.min(filters?.pageSize || 20, 100); // Max 100 items per page
   const offset = (page - 1) * pageSize;
 
   let query = 'SELECT id, name, email, role, status, created_at FROM users WHERE 1=1';
@@ -519,7 +519,7 @@ export const getKiosksPaginated = (filters?: {
   pageSize?: number;
 }) => {
   const page = filters?.page || 1;
-  const pageSize = filters?.pageSize || 20;
+  const pageSize = Math.min(filters?.pageSize || 20, 100); // Max 100 items per page
   const offset = (page - 1) * pageSize;
 
   let query = 'SELECT * FROM kiosks WHERE 1=1';
@@ -558,3 +558,26 @@ export const toggleKioskStatus = (id: number, isDisabled: boolean) => {
   return db.prepare('UPDATE kiosks SET is_disabled = ? WHERE id = ?').run(isDisabled ? 1 : 0, id);
 };
 
+// User Statistics
+export const getUserStats = (userId: number) => {
+  const stats = db.prepare(`
+    SELECT 
+      COUNT(*) as total,
+      SUM(CASE WHEN status = 'closed' THEN 1 ELSE 0 END) as closed,
+      AVG(
+        CASE 
+          WHEN status = 'closed' AND closed_at IS NOT NULL 
+          THEN (julianday(closed_at) - julianday(created_at)) * 24 
+          ELSE NULL 
+        END
+      ) as avgHoursToClose
+    FROM complaints
+    WHERE assigned_user_id = ?
+  `).get(userId) as { total: number; closed: number; avgHoursToClose: number | null };
+
+  return {
+    total: stats.total || 0,
+    closed: stats.closed || 0,
+    avgHoursToClose: stats.avgHoursToClose || 0,
+  };
+};

@@ -10,14 +10,17 @@ export default function UserProfilePage() {
   const [user, setUser] = useState<any>(null);
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [complaints, setComplaints] = useState<any[]>([]);
-  const [filteredComplaints, setFilteredComplaints] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [complaintsLoading, setComplaintsLoading] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [newPassword, setNewPassword] = useState('');
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [resettingPassword, setResettingPassword] = useState(false);
   const [togglingStatus, setTogglingStatus] = useState(false);
   const [filters, setFilters] = useState({ status: '', search: '' });
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalComplaints, setTotalComplaints] = useState(0);
   const [stats, setStats] = useState({
     total: 0,
     closed: 0,
@@ -30,8 +33,8 @@ export default function UserProfilePage() {
   }, [id]);
 
   useEffect(() => {
-    applyFilters();
-  }, [complaints, filters]);
+    fetchComplaints();
+  }, [id, page, filters]);
 
   const fetchCurrentUser = async () => {
     try {
@@ -45,39 +48,42 @@ export default function UserProfilePage() {
 
   const fetchUserData = async () => {
     try {
-      const [userRes, complaintsRes] = await Promise.all([
-        fetch(`/api/users/${id}`),
-        fetch(`/api/complaints?assigned_user_id=${id}&pageSize=1000`)
-      ]);
-
+      const userRes = await fetch(`/api/users/${id}`);
       const userData = await userRes.json();
-      const complaintsData = await complaintsRes.json();
-
       setUser(userData.user);
-      const userComplaints = complaintsData.complaints || [];
-      setComplaints(userComplaints);
-      setFilteredComplaints(userComplaints);
 
-      // Calculate stats
-      const closedComplaints = userComplaints.filter((c: any) => c.status === 'closed');
-      const totalHours = closedComplaints.reduce((sum: number, c: any) => {
-        if (c.closed_at) {
-          const created = new Date(c.created_at).getTime();
-          const closed = new Date(c.closed_at).getTime();
-          return sum + (closed - created) / (1000 * 60 * 60);
-        }
-        return sum;
-      }, 0);
+      // Set stats from API response (calculated in SQL)
+      if (userData.stats) {
+        setStats(userData.stats);
+      }
 
-      setStats({
-        total: userComplaints.length,
-        closed: closedComplaints.length,
-        avgHoursToClose: closedComplaints.length > 0 ? totalHours / closedComplaints.length : 0,
-      });
+      setLoading(false);
+    } catch (err) {
+      console.error(err);
+      setLoading(false);
+    }
+  };
+
+  const fetchComplaints = async () => {
+    setComplaintsLoading(true);
+    try {
+      const params = new URLSearchParams();
+      params.append('assigned_user_id', id as string);
+      params.append('page', page.toString());
+      params.append('pageSize', '20');
+      if (filters.status) params.append('status', filters.status);
+      if (filters.search) params.append('search', filters.search);
+
+      const res = await fetch(`/api/complaints?${params}`);
+      const data = await res.json();
+      
+      setComplaints(data.complaints || []);
+      setTotalComplaints(data.total || 0);
+      setTotalPages(data.totalPages || 1);
     } catch (err) {
       console.error(err);
     } finally {
-      setLoading(false);
+      setComplaintsLoading(false);
     }
   };
 
@@ -135,24 +141,9 @@ export default function UserProfilePage() {
     }
   };
 
-  const applyFilters = () => {
-    let filtered = [...complaints];
-    
-    if (filters.status) {
-      filtered = filtered.filter(c => c.status === filters.status);
-    }
-    
-    if (filters.search) {
-      const s = filters.search.toLowerCase();
-      filtered = filtered.filter(c => 
-        c.client_name?.toLowerCase().includes(s) ||
-        c.client_phone?.includes(s) ||
-        c.id?.toString().includes(s) ||
-        c.type_name?.toLowerCase().includes(s)
-      );
-    }
-    
-    setFilteredComplaints(filtered);
+  const handleFilterChange = (newFilters: typeof filters) => {
+    setFilters(newFilters);
+    setPage(1); // Reset to first page when filters change
   };
 
   const canResetPassword = (currentUser?.role === 'superadmin' && user?.role !== 'superadmin') ||
@@ -277,7 +268,7 @@ export default function UserProfilePage() {
           <div className="card">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-base font-bold" style={{ color: 'var(--color-navy)' }}>
-                الشكاوى المكلف بها ({filteredComplaints.length})
+                الشكاوى المكلف بها ({totalComplaints})
               </h3>
             </div>
 
@@ -288,7 +279,7 @@ export default function UserProfilePage() {
                 <select 
                   className="form-input" 
                   value={filters.status} 
-                  onChange={e => setFilters({ ...filters, status: e.target.value })}
+                  onChange={e => handleFilterChange({ ...filters, status: e.target.value })}
                 >
                   <option value="">الكل</option>
                   <option value="new">جديدة</option>
@@ -306,17 +297,21 @@ export default function UserProfilePage() {
                   className="form-input" 
                   placeholder="رقم، اسم، هاتف، نوع..."
                   value={filters.search} 
-                  onChange={e => setFilters({ ...filters, search: e.target.value })} 
+                  onChange={e => handleFilterChange({ ...filters, search: e.target.value })} 
                 />
               </div>
             </div>
 
-            {filteredComplaints.length === 0 ? (
+            {complaintsLoading ? (
+              <div className="text-center py-8">
+                <div className="spinner spinner-dark spinner-lg"></div>
+              </div>
+            ) : complaints.length === 0 ? (
               <div className="text-center py-8" style={{ color: 'var(--color-text-muted)' }}>
                 <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="mx-auto mb-2">
                   <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
                 </svg>
-                <p>{complaints.length === 0 ? 'لا توجد شكاوى مكلف بها حالياً' : 'لا توجد نتائج مطابقة للتصفية'}</p>
+                <p>لا توجد شكاوى مكلف بها حالياً</p>
               </div>
             ) : (
               <div className="table-wrapper">
@@ -331,7 +326,7 @@ export default function UserProfilePage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredComplaints.map(c => (
+                    {complaints.map(c => (
                       <tr
                         key={c.id}
                         onClick={() => router.push(`/dashboard/admin/complaints/${c.id}`)}
@@ -362,6 +357,79 @@ export default function UserProfilePage() {
                     ))}
                   </tbody>
                 </table>
+              </div>
+            )}
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  marginTop: '20px',
+                  padding: '16px',
+                  background: 'var(--color-bg-secondary)',
+                  borderRadius: '8px',
+                }}
+              >
+                <div style={{ color: 'var(--color-text-muted)', fontSize: '0.875rem' }}>
+                  عرض {(page - 1) * 20 + 1} - {Math.min(page * 20, totalComplaints)} من {totalComplaints}
+                </div>
+
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                  <button
+                    className="btn btn-secondary"
+                    style={{ padding: '6px 12px', fontSize: '0.875rem' }}
+                    onClick={() => setPage(page - 1)}
+                    disabled={page === 1}
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M5 12h14M12 5l7 7-7 7" />
+                    </svg>
+                    السابق
+                  </button>
+
+                  <div style={{ display: 'flex', gap: '4px' }}>
+                    {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                      let pageNumber;
+                      if (totalPages <= 5) {
+                        pageNumber = i + 1;
+                      } else if (page <= 3) {
+                        pageNumber = i + 1;
+                      } else if (page >= totalPages - 2) {
+                        pageNumber = totalPages - 4 + i;
+                      } else {
+                        pageNumber = page - 2 + i;
+                      }
+
+                      if (pageNumber < 1 || pageNumber > totalPages) return null;
+
+                      return (
+                        <button
+                          key={pageNumber}
+                          className={`btn ${pageNumber === page ? 'btn-primary' : 'btn-secondary'}`}
+                          style={{ padding: '6px 12px', fontSize: '0.875rem', minWidth: '36px' }}
+                          onClick={() => setPage(pageNumber)}
+                        >
+                          {pageNumber}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  <button
+                    className="btn btn-secondary"
+                    style={{ padding: '6px 12px', fontSize: '0.875rem' }}
+                    onClick={() => setPage(page + 1)}
+                    disabled={page === totalPages}
+                  >
+                    التالي
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M19 12H5M12 19l-7-7 7-7" />
+                    </svg>
+                  </button>
+                </div>
               </div>
             )}
           </div>
