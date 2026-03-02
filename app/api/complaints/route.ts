@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
     
     let complaints;
     
-    if (session.role === 'admin') {
+    if (session.role === 'admin' || session.role === 'superadmin') {
       complaints = getAllComplaints(filters);
     } else {
       // Users can only see their assigned complaints

@@ -24,6 +24,7 @@ export const PRIORITY_COLORS = {
 };
 
 export const ROLE_LABELS_AR = {
+  superadmin: 'مدير أعلى',
   admin: 'مسؤول',
   user: 'موظف'
 };

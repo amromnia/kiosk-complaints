@@ -29,7 +29,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       }
       
       // Role-based routing
-      const isAdmin = data.user.role === 'admin';
+      const isAdmin = data.user.role === 'admin' || data.user.role === 'superadmin';
       const isAdminRoute = pathname.startsWith('/dashboard/admin');
       const isUserRoute = pathname.startsWith('/dashboard/user');
       

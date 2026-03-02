@@ -22,7 +22,7 @@ export const initDatabase = () => {
       name TEXT NOT NULL,
       email TEXT UNIQUE,
       password TEXT,
-      role TEXT NOT NULL CHECK(role IN ('admin', 'user')),
+      role TEXT NOT NULL CHECK(role IN ('superadmin', 'admin', 'user')),
       status TEXT NOT NULL DEFAULT 'active' CHECK(status IN ('active', 'inactive')),
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )
@@ -134,6 +134,7 @@ export const initDatabase = () => {
       token TEXT PRIMARY KEY,
       user_id INTEGER,
       device_fingerprint TEXT,
+      role TEXT NOT NULL DEFAULT 'user' CHECK(role IN ('superadmin', 'admin', 'user')),
       expires_at DATETIME NOT NULL,
       is_used BOOLEAN NOT NULL DEFAULT 0,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,

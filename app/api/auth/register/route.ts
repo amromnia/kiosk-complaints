@@ -46,9 +46,9 @@ export async function POST(request: NextRequest) {
     // Generate device fingerprint
     const deviceFingerprint = generateDeviceFingerprint(request.headers);
     
-    // Create user
+    // Create user with role from registration link
     const hashedPassword = await bcrypt.hash(password, 10);
-    const result = createUser(name, email, hashedPassword, 'user');
+    const result = createUser(name, email, hashedPassword, link.role || 'user');
     const userId = result.lastInsertRowid as number;
     
     // Mark registration link as used

@@ -24,7 +24,7 @@ export default function DashboardShell({ children, requiredRole }: DashboardShel
       const data = await res.json();
       if (!data.user) { router.push('/login'); return; }
       if (requiredRole && data.user.role !== requiredRole) {
-        router.push(data.user.role === 'admin' ? '/dashboard/admin' : '/dashboard/user');
+        router.push(data.user.role === 'admin' || data.user.role === 'superadmin' ? '/dashboard/admin' : '/dashboard/user');
         return;
       }
       setUser(data.user);

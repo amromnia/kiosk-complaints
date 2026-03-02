@@ -48,7 +48,7 @@ function NavIcon({ name }: { name: string }) {
 export default function DashboardSidebar({ user, open, onClose }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
-  const links = user.role === 'admin' ? adminLinks : userLinks;
+  const links = user.role === 'admin' || user.role === 'superadmin' ? adminLinks : userLinks;
 
   const handleLogout = async () => {
     try { await fetch('/api/auth/logout', { method: 'POST' }); router.push('/login'); } catch {}
@@ -107,7 +107,7 @@ export default function DashboardSidebar({ user, open, onClose }: SidebarProps) 
           <div className="user-avatar">{user.name.charAt(0)}</div>
           <div className="user-info">
             <p>{user.name}</p>
-            <p>{user.role === 'admin' ? 'مسؤول النظام' : 'موظف'}</p>
+            <p>{user.role === 'superadmin' ? 'مدير أعلى' : user.role === 'admin' ? 'مسؤول النظام' : 'موظف'}</p>
           </div>
           <button onClick={handleLogout} title="تسجيل الخروج"
             style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.5)', cursor: 'pointer', padding: 4, marginRight: 'auto' }}>

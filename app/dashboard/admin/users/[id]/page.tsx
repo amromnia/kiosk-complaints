@@ -124,7 +124,7 @@ export default function UserProfilePage() {
                 {user.name}
               </h2>
               <p className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>
-                {user.role === 'admin' ? 'مسؤول النظام' : 'موظف'}
+                {user.role === 'superadmin' ? 'مدير أعلى' : user.role === 'admin' ? 'مسؤول النظام' : 'موظف'}
               </p>
             </div>
 

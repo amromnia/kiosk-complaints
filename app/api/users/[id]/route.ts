@@ -25,13 +25,34 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
 export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    await requireAdmin();
+    const session = await requireAdmin();
     const { id } = await params;
     const userId = parseInt(id, 10);
-    const existing = getUserById(userId) as any;
-    if (!existing) return NextResponse.json({ error: 'المستخدم غير موجود' }, { status: 404 });
+    
+    const targetUser = getUserById(userId) as any;
+    if (!targetUser) {
+      return NextResponse.json({ error: 'المستخدم غير موجود' }, { status: 404 });
+    }
+    
     const { status } = await request.json();
-    if (!['active', 'inactive'].includes(status)) return NextResponse.json({ error: 'حالة غير صالحة' }, { status: 400 });
+    if (!['active', 'inactive'].includes(status)) {
+      return NextResponse.json({ error: 'حالة غير صالحة' }, { status: 400 });
+    }
+    
+    // Check permissions based on role hierarchy
+    const currentUserRole = session.user.role;
+    const targetUserRole = targetUser.role;
+    
+    // Superadmin cannot be disabled
+    if (targetUserRole === 'superadmin') {
+      return NextResponse.json({ error: 'لا يمكن تعطيل حساب المدير الأعلى' }, { status: 403 });
+    }
+    
+    // Admin can only toggle regular users
+    if (currentUserRole === 'admin' && targetUserRole !== 'user') {
+      return NextResponse.json({ error: 'ليس لديك صلاحية لتعديل هذا المستخدم' }, { status: 403 });
+    }
+    
     updateUserStatus(userId, status);
     return NextResponse.json({ success: true });
   } catch (error: any) {

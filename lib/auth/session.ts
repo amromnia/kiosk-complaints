@@ -11,7 +11,7 @@ export interface UserSession {
   id: number;
   email: string;
   name: string;
-  role: 'admin' | 'user';
+  role: 'superadmin' | 'admin' | 'user';
 }
 
 export async function createToken(user: UserSession) {
@@ -90,7 +90,7 @@ export async function requireAuth(): Promise<UserSession> {
 export async function requireAdmin(): Promise<UserSession> {
   const session = await requireAuth();
   
-  if (session.role !== 'admin') {
+  if (session.role !== 'admin' && session.role !== 'superadmin') {
     throw new Error('Forbidden: Admin access required');
   }
   

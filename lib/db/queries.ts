@@ -301,11 +301,11 @@ export const markNotificationAsRead = (notificationId: number) => {
 };
 
 // Registration Link Queries
-export const createRegistrationLink = (token: string, expiresAt: string) => {
+export const createRegistrationLink = (token: string, expiresAt: string, role: string = 'user') => {
   return db.prepare(`
-    INSERT INTO registration_links (token, expires_at)
-    VALUES (?, ?)
-  `).run(token, expiresAt);
+    INSERT INTO registration_links (token, expires_at, role)
+    VALUES (?, ?, ?)
+  `).run(token, expiresAt, role);
 };
 
 export const getRegistrationLink = (token: string) => {

@@ -44,7 +44,7 @@ export default function DashboardHeader({ user }: DashboardHeaderProps) {
         <div className="flex items-center gap-3">
           <div className="text-left hidden sm:block">
             <p className="text-sm font-semibold leading-tight">{user.name}</p>
-            <p className="text-xs opacity-60">{user.role === 'admin' ? 'مسؤول النظام' : 'موظف'}</p>
+            <p className="text-xs opacity-60">{user.role === 'superadmin' ? 'مدير أعلى' : user.role === 'admin' ? 'مسؤول النظام' : 'موظف'}</p>
           </div>
           <div className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold shrink-0"
                style={{ background: 'rgba(255,255,255,0.15)' }}>

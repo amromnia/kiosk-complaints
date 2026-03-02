@@ -21,7 +21,7 @@ export default function LoginPage() {
       });
       const data = await res.json();
       if (data.success) {
-        router.push(data.user.role === 'admin' ? '/dashboard/admin' : '/dashboard/user');
+        router.push(data.user.role === 'admin' || data.user.role === 'superadmin' ? '/dashboard/admin' : '/dashboard/user');
       } else {
         setError(data.error || 'فشل تسجيل الدخول');
       }

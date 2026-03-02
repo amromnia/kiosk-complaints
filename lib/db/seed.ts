@@ -3,21 +3,22 @@ import bcrypt from 'bcryptjs';
 import { nanoid } from 'nanoid';
 
 export const seedDatabase = async () => {
-  // Check if admin already exists
-  const existingAdmin = db.prepare('SELECT * FROM users WHERE role = ?').get('admin');
+  // Check if superadmin already exists
+  const existingSuperAdmin = db.prepare('SELECT * FROM users WHERE role = ?').get('superadmin');
   
-  if (!existingAdmin) {
-    // Create default admin user
+  if (!existingSuperAdmin) {
+    // Create default superadmin user
     const hashedPassword = await bcrypt.hash('Admin@123!', 10);
     
     db.prepare(`
       INSERT INTO users (name, email, password, role, status)
       VALUES (?, ?, ?, ?, ?)
-    `).run('المسؤول الرئيسي', 'admin@traffic.gov.eg', hashedPassword, 'admin', 'active');
+    `).run('المسؤول الرئيسي', 'admin@traffic.gov.eg', hashedPassword, 'superadmin', 'active');
     
-    console.log('✅ Admin user created');
+    console.log('✅ SuperAdmin user created');
     console.log('   Email: admin@traffic.gov.eg');
     console.log('   Password: Admin@123!');
+    console.log('   Role: superadmin');
   }
 
   // Check if complaint types exist
