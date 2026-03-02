@@ -3,12 +3,17 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { formatDate, ROLE_LABELS_AR } from '@/lib/utils/constants';
+import DataTable from '@/components/DataTable';
 
 export default function AdminUsersPage() {
   const router = useRouter();
-  const [users, setUsers] = useState<any[]>([]);
+  const [data, setData] = useState<any[]>([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [filters, setFilters] = useState({ search: '', role: '', status: '' });
   const [regLink, setRegLink] = useState('');
   const [generating, setGenerating] = useState(false);
   const [showLinkModal, setShowLinkModal] = useState(false);
@@ -25,9 +30,10 @@ export default function AdminUsersPage() {
   const [showNewPasswordInModal, setShowNewPasswordInModal] = useState(false);
 
   useEffect(() => { 
-    fetchUsers(); 
     fetchCurrentUser();
   }, []);
+  
+  useEffect(() => { fetchUsers(); }, [page, filters]);
 
   const fetchCurrentUser = async () => {
     try {
@@ -38,10 +44,20 @@ export default function AdminUsersPage() {
   };
 
   const fetchUsers = async () => {
+    setLoading(true);
     try {
-      const res = await fetch('/api/users');
-      const data = await res.json();
-      setUsers(data.users || []);
+      const params = new URLSearchParams();
+      params.append('page', page.toString());
+      params.append('pageSize', '20');
+      if (filters.search) params.append('search', filters.search);
+      if (filters.role) params.append('role', filters.role);
+      if (filters.status) params.append('status', filters.status);
+      
+      const res = await fetch(`/api/users?${params}`);
+      const result = await res.json();
+      setData(result.users || []);
+      setTotal(result.total || 0);
+      setTotalPages(result.totalPages || 1);
     } catch (err) { console.error(err); }
     finally { setLoading(false); }
   };
@@ -98,7 +114,7 @@ export default function AdminUsersPage() {
         body: JSON.stringify({ status: newStatus })
       });
       if (res.ok) {
-        setUsers(prev => prev.map(u => u.id === userId ? { ...u, status: newStatus } : u));
+        setData(prev => prev.map(u => u.id === userId ? { ...u, status: newStatus } : u));
       } else {
         const data = await res.json();
         alert(data.error || 'فشل تحديث حالة المستخدم');
@@ -153,6 +169,65 @@ export default function AdminUsersPage() {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const columns = [
+    { key: 'id', label: '#' },
+    { key: 'name', label: 'الاسم', render: (item: any) => <span style={{ fontWeight: 600 }}>{item.name}</span> },
+    { key: 'email', label: 'البريد الإلكتروني' },
+    { 
+      key: 'role', 
+      label: 'الدور',
+      render: (item: any) => (
+        <span className={`badge ${
+          item.role === 'superadmin' ? 'badge-danger' : 
+          item.role === 'admin' ? 'badge-primary' : 'badge-info'
+        }`}>
+          {(ROLE_LABELS_AR as any)[item.role] || item.role}
+        </span>
+      )
+    },
+    { 
+      key: 'status', 
+      label: 'الحالة',
+      render: (item: any) => (
+        <span className={`badge ${item.status === 'active' ? 'badge-success' : 'badge-danger'}`}>
+          {item.status === 'active' ? 'نشط' : 'معطل'}
+        </span>
+      )
+    },
+    { key: 'created_at', label: 'تاريخ التسجيل', render: (item: any) => <span style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)' }}>{formatDate(item.created_at)}</span> },
+  ];
+
+  const renderActions = (item: any) => {
+    const canToggle = currentUser?.role === 'superadmin' || 
+      (currentUser?.role === 'admin' && item.role === 'user');
+    const canResetPassword = currentUser?.role === 'superadmin' ||
+      (currentUser?.role === 'admin' && item.role !== 'superadmin');
+    
+    return (
+      <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', flexWrap: 'wrap' }}>
+        {canResetPassword && (
+          <button
+            className="btn btn-secondary"
+            style={{ fontSize: '0.8rem', padding: '4px 12px' }}
+            onClick={() => openPasswordReset(item.id)}
+          >
+            إعادة تعيين كلمة المرور
+          </button>
+        )}
+        {canToggle && (
+          <button
+            className={`btn ${item.status === 'active' ? 'btn-danger' : 'btn-success'}`}
+            style={{ fontSize: '0.8rem', padding: '4px 12px' }}
+            disabled={togglingId === item.id}
+            onClick={() => toggleUserStatus(item.id, item.status)}
+          >
+            {togglingId === item.id ? '...' : item.status === 'active' ? 'تعطيل' : 'تفعيل'}
+          </button>
+        )}
+      </div>
+    );
+  };
+
   return (
     <>
       <div className="page-header">
@@ -169,83 +244,56 @@ export default function AdminUsersPage() {
         </button>
       </div>
 
-      {loading ? (
+      {/* Filters */}
+      <div className="card mb-6">
+        <h3 className="text-base font-bold mb-3" style={{ color: 'var(--color-navy)' }}>تصفية النتائج</h3>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div>
+            <label className="form-label">الدور</label>
+            <select className="form-input" value={filters.role} onChange={e => { setFilters({ ...filters, role: e.target.value }); setPage(1); }}>
+              <option value="">الكل</option>
+              <option value="user">موظف</option>
+              <option value="admin">مدير</option>
+              <option value="superadmin">مدير أعلى</option>
+            </select>
+          </div>
+          <div>
+            <label className="form-label">الحالة</label>
+            <select className="form-input" value={filters.status} onChange={e => { setFilters({ ...filters, status: e.target.value }); setPage(1); }}>
+              <option value="">الكل</option>
+              <option value="active">نشط</option>
+              <option value="inactive">معطل</option>
+            </select>
+          </div>
+          <div>
+            <label className="form-label">بحث</label>
+            <input type="text" className="form-input" placeholder="الاسم أو البريد الإلكتروني..." value={filters.search} onChange={e => { setFilters({ ...filters, search: e.target.value }); setPage(1); }} />
+          </div>
+        </div>
+      </div>
+
+      {loading && data.length === 0 ? (
         <div className="empty-state"><div className="spinner spinner-dark spinner-lg"></div></div>
-      ) : users.length === 0 ? (
+      ) : total === 0 && !filters.search && !filters.role && !filters.status ? (
         <div className="empty-state">
           <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4-4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
           <p>لا يوجد موظفون مسجلون بعد</p>
           <button className="btn btn-primary mt-3" onClick={startGenerateLink}>إنشاء رابط تسجيل</button>
         </div>
       ) : (
-        <div className="table-wrapper">
-          <table>
-            <thead>
-              <tr>
-                <th>#</th>
-                <th>الاسم</th>
-                <th>البريد الإلكتروني</th>
-                <th>الدور</th>
-                <th>الحالة</th>
-                <th>تاريخ التسجيل</th>
-                <th>الإجراءات</th>
-              </tr>
-            </thead>
-            <tbody>
-              {users.map((user, i) => {
-                const canToggle = currentUser?.role === 'superadmin' || 
-                  (currentUser?.role === 'admin' && user.role === 'user');
-                const canResetPassword = currentUser?.role === 'superadmin' ||
-                  (currentUser?.role === 'admin' && user.role !== 'superadmin');
-                
-                return (
-                  <tr key={user.id}>
-                    <td>{i + 1}</td>
-                    <td style={{ fontWeight: 600 }}>{user.name}</td>
-                    <td>{user.email}</td>
-                    <td>
-                      <span className={`badge ${
-                        user.role === 'superadmin' ? 'badge-danger' : 
-                        user.role === 'admin' ? 'badge-primary' : 'badge-info'
-                      }`}>
-                        {(ROLE_LABELS_AR as any)[user.role] || user.role}
-                      </span>
-                    </td>
-                    <td>
-                      <span className={`badge ${user.status === 'active' ? 'badge-success' : 'badge-danger'}`}>
-                        {user.status === 'active' ? 'نشط' : 'معطل'}
-                      </span>
-                    </td>
-                    <td style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)' }}>{formatDate(user.created_at)}</td>
-                    <td>
-                      <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
-                        {canResetPassword && (
-                          <button
-                            className="btn btn-secondary"
-                            style={{ fontSize: '0.8rem', padding: '4px 12px' }}
-                            onClick={() => openPasswordReset(user.id)}
-                          >
-                            إعادة تعيين كلمة المرور
-                          </button>
-                        )}
-                        {canToggle && (
-                          <button
-                            className={`btn ${user.status === 'active' ? 'btn-danger' : 'btn-success'}`}
-                            style={{ fontSize: '0.8rem', padding: '4px 12px' }}
-                            disabled={togglingId === user.id}
-                            onClick={() => toggleUserStatus(user.id, user.status)}
-                          >
-                            {togglingId === user.id ? '...' : user.status === 'active' ? 'تعطيل' : 'تفعيل'}
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+        <DataTable
+          data={data}
+          columns={columns}
+          loading={loading}
+          onRowClick={(user) => router.push(`/dashboard/admin/users/${user.id}`)}
+          actions={renderActions}
+          currentPage={page}
+          totalPages={totalPages}
+          totalItems={total}
+          pageSize={20}
+          onPageChange={setPage}
+          emptyMessage="لا يوجد موظفون مطابقون للتصفية"
+        />
       )}
 
       {/* Role Selection Modal */}

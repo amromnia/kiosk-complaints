@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth/session';
 import { 
   getAllComplaints, 
-  getUserComplaints 
+  getUserComplaints,
+  getComplaintsPaginated
 } from '@/lib/db/queries';
 
 export async function GET(request: NextRequest) {
@@ -12,22 +13,33 @@ export async function GET(request: NextRequest) {
     
     const filters = {
       status: searchParams.get('status') || undefined,
+      priority: searchParams.get('priority') || undefined,
       assigned_user_id: searchParams.get('assigned_user_id') ? parseInt(searchParams.get('assigned_user_id')!) : undefined,
       complaint_type_id: searchParams.get('complaint_type_id') ? parseInt(searchParams.get('complaint_type_id')!) : undefined,
       date_from: searchParams.get('date_from') || undefined,
       date_to: searchParams.get('date_to') || undefined,
+      search: searchParams.get('search') || undefined,
+      page: searchParams.get('page') ? parseInt(searchParams.get('page')!) : 1,
+      pageSize: searchParams.get('pageSize') ? parseInt(searchParams.get('pageSize')!) : 20,
     };
     
-    let complaints;
+    let result;
     
     if (session.role === 'admin' || session.role === 'superadmin') {
-      complaints = getAllComplaints(filters);
+      result = getComplaintsPaginated(filters);
     } else {
       // Users can only see their assigned complaints
-      complaints = getUserComplaints(session.id);
+      const complaints = getUserComplaints(session.id);
+      result = {
+        complaints,
+        total: complaints.length,
+        page: 1,
+        pageSize: complaints.length,
+        totalPages: 1,
+      };
     }
     
-    return NextResponse.json({ complaints });
+    return NextResponse.json(result);
   } catch (error: any) {
     console.error('Get complaints error:', error);
     return NextResponse.json(

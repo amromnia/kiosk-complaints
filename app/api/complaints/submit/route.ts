@@ -70,6 +70,14 @@ export async function POST(request: NextRequest) {
       );
     }
     
+    // Check if kiosk is disabled
+    if (kiosk.is_disabled) {
+      return NextResponse.json(
+        { error: 'هذه الماكينة معطلة حالياً. يرجى استخدام ماكينة أخرى أو التواصل مع الدعم.' },
+        { status: 403 }
+      );
+    }
+    
     // Get complaint type
     const complaintType: any = getComplaintTypeById(complaint_type_id);
     if (!complaintType) {

@@ -8,8 +8,16 @@ export default function UserProfilePage() {
   const router = useRouter();
   const { id } = useParams();
   const [user, setUser] = useState<any>(null);
+  const [currentUser, setCurrentUser] = useState<any>(null);
   const [complaints, setComplaints] = useState<any[]>([]);
+  const [filteredComplaints, setFilteredComplaints] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [newPassword, setNewPassword] = useState('');
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [resettingPassword, setResettingPassword] = useState(false);
+  const [togglingStatus, setTogglingStatus] = useState(false);
+  const [filters, setFilters] = useState({ status: '', search: '' });
   const [stats, setStats] = useState({
     total: 0,
     closed: 0,
@@ -17,14 +25,29 @@ export default function UserProfilePage() {
   });
 
   useEffect(() => {
+    fetchCurrentUser();
     fetchUserData();
   }, [id]);
+
+  useEffect(() => {
+    applyFilters();
+  }, [complaints, filters]);
+
+  const fetchCurrentUser = async () => {
+    try {
+      const res = await fetch('/api/auth/session');
+      const data = await res.json();
+      if (data.user) setCurrentUser(data.user);
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   const fetchUserData = async () => {
     try {
       const [userRes, complaintsRes] = await Promise.all([
         fetch(`/api/users/${id}`),
-        fetch(`/api/complaints?assigned_user_id=${id}`)
+        fetch(`/api/complaints?assigned_user_id=${id}&pageSize=1000`)
       ]);
 
       const userData = await userRes.json();
@@ -33,6 +56,7 @@ export default function UserProfilePage() {
       setUser(userData.user);
       const userComplaints = complaintsData.complaints || [];
       setComplaints(userComplaints);
+      setFilteredComplaints(userComplaints);
 
       // Calculate stats
       const closedComplaints = userComplaints.filter((c: any) => c.status === 'closed');
@@ -60,6 +84,7 @@ export default function UserProfilePage() {
   const toggleUserStatus = async () => {
     if (!user) return;
     const newStatus = user.status === 'active' ? 'inactive' : 'active';
+    setTogglingStatus(true);
     try {
       const res = await fetch(`/api/users/${id}`, {
         method: 'PUT',
@@ -68,11 +93,73 @@ export default function UserProfilePage() {
       });
       if (res.ok) {
         setUser({ ...user, status: newStatus });
+      } else {
+        const data = await res.json();
+        alert(data.error || 'فشل تحديث حالة المستخدم');
       }
     } catch (err) {
       console.error(err);
+      alert('حدث خطأ أثناء تحديث حالة المستخدم');
+    } finally {
+      setTogglingStatus(false);
     }
   };
+
+  const resetPassword = async () => {
+    if (!newPassword || newPassword.length < 8) {
+      alert('كلمة المرور يجب أن تكون 8 أحرف على الأقل');
+      return;
+    }
+    
+    setResettingPassword(true);
+    try {
+      const res = await fetch(`/api/users/${id}/reset-password`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ newPassword })
+      });
+      
+      if (res.ok) {
+        alert('تم تغيير كلمة المرور بنجاح');
+        setShowPasswordModal(false);
+        setNewPassword('');
+      } else {
+        const data = await res.json();
+        alert(data.error || 'فشل تغيير كلمة المرور');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('حدث خطأ أثناء تغيير كلمة المرور');
+    } finally {
+      setResettingPassword(false);
+    }
+  };
+
+  const applyFilters = () => {
+    let filtered = [...complaints];
+    
+    if (filters.status) {
+      filtered = filtered.filter(c => c.status === filters.status);
+    }
+    
+    if (filters.search) {
+      const s = filters.search.toLowerCase();
+      filtered = filtered.filter(c => 
+        c.client_name?.toLowerCase().includes(s) ||
+        c.client_phone?.includes(s) ||
+        c.id?.toString().includes(s) ||
+        c.type_name?.toLowerCase().includes(s)
+      );
+    }
+    
+    setFilteredComplaints(filtered);
+  };
+
+  const canResetPassword = (currentUser?.role === 'superadmin' && user?.role !== 'superadmin') ||
+    (currentUser?.role === 'admin' && user?.role === 'user');
+
+  const canToggleStatus = currentUser?.role === 'superadmin' ||
+    (currentUser?.role === 'admin' && user?.role === 'user');
 
   if (loading) {
     return (
@@ -145,12 +232,25 @@ export default function UserProfilePage() {
               </div>
             </div>
 
-            <button
-              onClick={toggleUserStatus}
-              className={`btn w-full ${user.status === 'active' ? 'btn-warning' : 'btn-success'}`}
-            >
-              {user.status === 'active' ? 'تعطيل الحساب' : 'تفعيل الحساب'}
-            </button>
+            <div className="space-y-2">
+              {canResetPassword && (
+                <button
+                  onClick={() => setShowPasswordModal(true)}
+                  className="btn btn-secondary w-full"
+                >
+                  إعادة تعيين كلمة المرور
+                </button>
+              )}
+              {canToggleStatus && (
+                <button
+                  onClick={toggleUserStatus}
+                  disabled={togglingStatus}
+                  className={`btn w-full ${user.status === 'active' ? 'btn-warning' : 'btn-success'}`}
+                >
+                  {togglingStatus ? 'جاري التحديث...' : (user.status === 'active' ? 'تعطيل الحساب' : 'تفعيل الحساب')}
+                </button>
+              )}
+            </div>
           </div>
         </div>
 
@@ -175,16 +275,48 @@ export default function UserProfilePage() {
 
           {/* Complaints Table */}
           <div className="card">
-            <h3 className="text-base font-bold mb-4" style={{ color: 'var(--color-navy)' }}>
-              الشكاوى المكلف بها ({complaints.length})
-            </h3>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-base font-bold" style={{ color: 'var(--color-navy)' }}>
+                الشكاوى المكلف بها ({filteredComplaints.length})
+              </h3>
+            </div>
 
-            {complaints.length === 0 ? (
+            {/* Filters */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+              <div>
+                <label className="form-label">الحالة</label>
+                <select 
+                  className="form-input" 
+                  value={filters.status} 
+                  onChange={e => setFilters({ ...filters, status: e.target.value })}
+                >
+                  <option value="">الكل</option>
+                  <option value="new">جديدة</option>
+                  <option value="assigned">معينة</option>
+                  <option value="in_progress">قيد المعالجة</option>
+                  <option value="resolved">محلولة</option>
+                  <option value="closed">مغلقة</option>
+                  <option value="reopened">معادة الفتح</option>
+                </select>
+              </div>
+              <div>
+                <label className="form-label">بحث</label>
+                <input 
+                  type="text" 
+                  className="form-input" 
+                  placeholder="رقم، اسم، هاتف، نوع..."
+                  value={filters.search} 
+                  onChange={e => setFilters({ ...filters, search: e.target.value })} 
+                />
+              </div>
+            </div>
+
+            {filteredComplaints.length === 0 ? (
               <div className="text-center py-8" style={{ color: 'var(--color-text-muted)' }}>
                 <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="mx-auto mb-2">
                   <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
                 </svg>
-                <p>لا توجد شكاوى مكلف بها حالياً</p>
+                <p>{complaints.length === 0 ? 'لا توجد شكاوى مكلف بها حالياً' : 'لا توجد نتائج مطابقة للتصفية'}</p>
               </div>
             ) : (
               <div className="table-wrapper">
@@ -199,7 +331,7 @@ export default function UserProfilePage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {complaints.map(c => (
+                    {filteredComplaints.map(c => (
                       <tr
                         key={c.id}
                         onClick={() => router.push(`/dashboard/admin/complaints/${c.id}`)}
@@ -235,6 +367,67 @@ export default function UserProfilePage() {
           </div>
         </div>
       </div>
+
+      {/* Password Reset Modal */}
+      {showPasswordModal && (
+        <div className="modal-overlay" onClick={() => setShowPasswordModal(false)}>
+          <div className="modal-content" onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>إعادة تعيين كلمة المرور</h3>
+              <button onClick={() => setShowPasswordModal(false)} style={{ background: 'none', border: 'none', fontSize: '1.5rem', cursor: 'pointer', color: '#64748b' }}>&times;</button>
+            </div>
+            <div className="modal-body">
+              <p className="text-sm mb-3" style={{ color: 'var(--color-text-muted)' }}>
+                أدخل كلمة المرور الجديدة لـ {user.name} (8 أحرف على الأقل)
+              </p>
+              <div style={{ position: 'relative' }}>
+                <input
+                  type={showNewPassword ? 'text' : 'password'}
+                  className="form-input"
+                  placeholder="كلمة المرور الجديدة"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  minLength={8}
+                  style={{ paddingLeft: '40px' }}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowNewPassword(!showNewPassword)}
+                  style={{
+                    position: 'absolute',
+                    left: '12px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    color: 'var(--color-text-muted)',
+                    padding: '4px'
+                  }}
+                >
+                  {showNewPassword ? (
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"/>
+                      <line x1="1" y1="1" x2="23" y2="23"/>
+                    </svg>
+                  ) : (
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                      <circle cx="12" cy="12" r="3"/>
+                    </svg>
+                  )}
+                </button>
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button className="btn btn-secondary" onClick={() => setShowPasswordModal(false)} disabled={resettingPassword}>إلغاء</button>
+              <button className="btn btn-primary" onClick={resetPassword} disabled={resettingPassword}>
+                {resettingPassword ? 'جاري التحديث...' : 'تحديث كلمة المرور'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

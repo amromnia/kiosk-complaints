@@ -46,6 +46,7 @@ export const initDatabase = () => {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       unique_link TEXT UNIQUE NOT NULL,
       location TEXT,
+      is_disabled BOOLEAN NOT NULL DEFAULT 0,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )
   `);

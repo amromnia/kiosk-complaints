@@ -16,40 +16,42 @@ export default function AdminDashboard() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [complaints, setComplaints] = useState<any[]>([]);
-  const [filteredComplaints, setFilteredComplaints] = useState<any[]>([]);
-  const [users, setUsers] = useState<any[]>([]);
-  const [filters, setFilters] = useState({ status: '', assigned_user_id: '', search: '' });
+  const [allComplaints, setAllComplaints] = useState<any[]>([]);
+  const [filters, setFilters] = useState({ status: '', priority: '', search: '' });
 
-  useEffect(() => { fetchData(); }, []);
-  useEffect(() => { applyFilters(); }, [complaints, filters]);
+  useEffect(() => { fetchStats(); }, []);
+  useEffect(() => { fetchComplaints(); }, [filters]);
 
-  const fetchData = async () => {
+  const fetchStats = async () => {
     try {
-      const [cRes, uRes] = await Promise.all([fetch('/api/complaints'), fetch('/api/users')]);
-      const [cData, uData] = await Promise.all([cRes.json(), uRes.json()]);
-      setComplaints(cData.complaints || []);
-      setUsers(uData.users || []);
+      const res = await fetch('/api/complaints?pageSize=1000');
+      const data = await res.json();
+      setAllComplaints(data.complaints || []);
+    } catch (err) { console.error(err); }
+  };
+
+  const fetchComplaints = async () => {
+    setLoading(true);
+    try {
+      const params = new URLSearchParams();
+      if (filters.status) params.append('status', filters.status);
+      if (filters.priority) params.append('priority', filters.priority);
+      if (filters.search) params.append('search', filters.search);
+      params.append('pageSize', '20');
+      
+      const res = await fetch(`/api/complaints?${params}`);
+      const data = await res.json();
+      setComplaints(data.complaints || []);
     } catch (err) { console.error(err); }
     finally { setLoading(false); }
   };
 
-  const applyFilters = () => {
-    let filtered = [...complaints];
-    if (filters.status) filtered = filtered.filter(c => c.status === filters.status);
-    if (filters.assigned_user_id) filtered = filtered.filter(c => c.assigned_user_id === parseInt(filters.assigned_user_id));
-    if (filters.search) {
-      const s = filters.search.toLowerCase();
-      filtered = filtered.filter(c => c.client_name?.toLowerCase().includes(s) || c.client_phone?.includes(s) || c.id?.toString().includes(s));
-    }
-    setFilteredComplaints(filtered);
-  };
-
   const stats = {
-    total: complaints.length,
-    new: complaints.filter(c => c.status === 'new').length,
-    assigned: complaints.filter(c => c.status === 'assigned').length,
-    in_progress: complaints.filter(c => c.status === 'in_progress').length,
-    closed: complaints.filter(c => c.status === 'closed').length,
+    total: allComplaints.length,
+    new: allComplaints.filter(c => c.status === 'new').length,
+    assigned: allComplaints.filter(c => c.status === 'assigned').length,
+    in_progress: allComplaints.filter(c => c.status === 'in_progress').length,
+    closed: allComplaints.filter(c => c.status === 'closed').length,
   };
   const statItems = [
     { label: 'إجمالي الشكاوى', value: stats.total },
@@ -95,10 +97,12 @@ export default function AdminDashboard() {
             </select>
           </div>
           <div>
-            <label className="form-label">الموظف</label>
-            <select className="form-input" value={filters.assigned_user_id} onChange={e => setFilters({...filters, assigned_user_id: e.target.value})}>
+            <label className="form-label">الأولوية</label>
+            <select className="form-input" value={filters.priority} onChange={e => setFilters({...filters, priority: e.target.value})}>
               <option value="">الكل</option>
-              {users.filter(u => u.role === 'user').map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
+              <option value="high">عالية</option>
+              <option value="medium">متوسطة</option>
+              <option value="low">منخفضة</option>
             </select>
           </div>
           <div>
@@ -110,14 +114,14 @@ export default function AdminDashboard() {
 
       {loading ? (
         <div className="empty-state"><div className="spinner spinner-dark spinner-lg"></div></div>
-      ) : filteredComplaints.length === 0 ? (
+      ) : complaints.length === 0 ? (
         <div className="empty-state">
           <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M9 12h6m-3-3v6m-7 4h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
           <p>لا توجد شكاوى</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-          {filteredComplaints.map(complaint => (
+          {complaints.map(complaint => (
             <ComplaintCard key={complaint.id} complaint={complaint} onClick={() => router.push(`/dashboard/admin/complaints/${complaint.id}`)} />
           ))}
         </div>

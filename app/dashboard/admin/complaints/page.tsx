@@ -3,41 +3,69 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { formatDate, STATUS_LABELS_AR, PRIORITY_LABELS_AR } from '@/lib/utils/constants';
+import DataTable from '@/components/DataTable';
 
 export default function AdminComplaintsPage() {
   const router = useRouter();
-  const [complaints, setComplaints] = useState<any[]>([]);
+  const [data, setData] = useState<any[]>([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState({ status: '', priority: '', search: '' });
-  const [filtered, setFiltered] = useState<any[]>([]);
 
-  useEffect(() => { fetchComplaints(); }, []);
-  useEffect(() => { applyFilters(); }, [complaints, filters]);
+  useEffect(() => { fetchComplaints(); }, [page, filters]);
 
   const fetchComplaints = async () => {
+    setLoading(true);
     try {
-      const res = await fetch('/api/complaints');
-      const data = await res.json();
-      setComplaints(data.complaints || []);
+      const params = new URLSearchParams();
+      params.append('page', page.toString());
+      params.append('pageSize', '20');
+      if (filters.status) params.append('status', filters.status);
+      if (filters.priority) params.append('priority', filters.priority);
+      if (filters.search) params.append('search', filters.search);
+      
+      const res = await fetch(`/api/complaints?${params}`);
+      const result = await res.json();
+      setData(result.complaints || []);
+      setTotal(result.total || 0);
+      setTotalPages(result.totalPages || 1);
     } catch (err) { console.error(err); }
     finally { setLoading(false); }
   };
 
-  const applyFilters = () => {
-    let result = [...complaints];
-    if (filters.status) result = result.filter(c => c.status === filters.status);
-    if (filters.priority) result = result.filter(c => c.priority === filters.priority);
-    if (filters.search) {
-      const s = filters.search.toLowerCase();
-      result = result.filter(c =>
-        c.client_name?.toLowerCase().includes(s) ||
-        c.client_phone?.includes(s) ||
-        c.id?.toString().includes(s) ||
-        c.type_name?.toLowerCase().includes(s)
-      );
-    }
-    setFiltered(result);
-  };
+  const columns = [
+    { key: 'id', label: '#', render: (item: any) => <span style={{ fontWeight: 600 }}>{item.id}</span> },
+    { 
+      key: 'client_name', 
+      label: 'مقدم الشكوى',
+      render: (item: any) => (
+        <div>
+          <div style={{ fontWeight: 600 }}>{item.client_name}</div>
+          <div style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)', direction: 'ltr', textAlign: 'right' }}>{item.client_phone}</div>
+        </div>
+      )
+    },
+    { key: 'type_name', label: 'النوع' },
+    { 
+      key: 'priority', 
+      label: 'الأولوية',
+      render: (item: any) => <span className={`badge priority-${item.priority}`}>{(PRIORITY_LABELS_AR as any)[item.priority] || item.priority}</span>
+    },
+    { 
+      key: 'status', 
+      label: 'الحالة',
+      render: (item: any) => <span className={`badge status-${item.status}`}>{(STATUS_LABELS_AR as any)[item.status] || item.status}</span>
+    },
+    { 
+      key: 'assigned_user_name', 
+      label: 'المكلف',
+      render: (item: any) => item.assigned_user_name || <span style={{ color: '#94a3b8' }}>—</span>
+    },
+    { key: 'kiosk_location', label: 'الموقع', render: (item: any) => <span style={{ fontSize: '0.85rem' }}>{item.kiosk_location}</span> },
+    { key: 'created_at', label: 'التاريخ', render: (item: any) => <span style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>{formatDate(item.created_at)}</span> },
+  ];
 
   return (
     <>
@@ -46,7 +74,7 @@ export default function AdminComplaintsPage() {
           <h1>جميع الشكاوى</h1>
           <p className="text-sm" style={{ color: 'var(--color-text-muted)' }}>عرض وإدارة جميع الشكاوى المقدمة عبر الماكينات</p>
         </div>
-        <span className="badge badge-primary" style={{ fontSize: '0.9rem', padding: '6px 14px' }}>{complaints.length} شكوى</span>
+        <span className="badge badge-primary" style={{ fontSize: '0.9rem', padding: '6px 14px' }}>{total} شكوى</span>
       </div>
 
       {/* Filters */}
@@ -55,75 +83,37 @@ export default function AdminComplaintsPage() {
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div>
             <label className="form-label">الحالة</label>
-            <select className="form-input" value={filters.status} onChange={e => setFilters({ ...filters, status: e.target.value })}>
+            <select className="form-input" value={filters.status} onChange={e => { setFilters({ ...filters, status: e.target.value }); setPage(1); }}>
               <option value="">الكل</option>
               {Object.entries(STATUS_LABELS_AR).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
             </select>
           </div>
           <div>
             <label className="form-label">الأولوية</label>
-            <select className="form-input" value={filters.priority} onChange={e => setFilters({ ...filters, priority: e.target.value })}>
+            <select className="form-input" value={filters.priority} onChange={e => { setFilters({ ...filters, priority: e.target.value }); setPage(1); }}>
               <option value="">الكل</option>
               {Object.entries(PRIORITY_LABELS_AR).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
             </select>
           </div>
           <div>
             <label className="form-label">بحث</label>
-            <input type="text" className="form-input" placeholder="رقم، اسم، هاتف، نوع..." value={filters.search} onChange={e => setFilters({ ...filters, search: e.target.value })} />
+            <input type="text" className="form-input" placeholder="رقم، اسم، هاتف، نوع..." value={filters.search} onChange={e => { setFilters({ ...filters, search: e.target.value }); setPage(1); }} />
           </div>
         </div>
       </div>
 
-      {loading ? (
-        <div className="empty-state"><div className="spinner spinner-dark spinner-lg"></div></div>
-      ) : filtered.length === 0 ? (
-        <div className="empty-state">
-          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
-          <p>لا توجد شكاوى مطابقة للتصفية</p>
-        </div>
-      ) : (
-        <div className="table-wrapper">
-          <table>
-            <thead>
-              <tr>
-                <th>#</th>
-                <th>مقدم الشكوى</th>
-                <th>النوع</th>
-                <th>الأولوية</th>
-                <th>الحالة</th>
-                <th>المكلف</th>
-                <th>الموقع</th>
-                <th>التاريخ</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map(c => (
-                <tr key={c.id} onClick={() => router.push(`/dashboard/admin/complaints/${c.id}`)} style={{ cursor: 'pointer' }}>
-                  <td style={{ fontWeight: 600 }}>{c.id}</td>
-                  <td>
-                    <div style={{ fontWeight: 600 }}>{c.client_name}</div>
-                    <div style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)', direction: 'ltr', textAlign: 'right' }}>{c.client_phone}</div>
-                  </td>
-                  <td>{c.type_name}</td>
-                  <td>
-                    <span className={`badge priority-${c.priority}`}>
-                      {(PRIORITY_LABELS_AR as any)[c.priority] || c.priority}
-                    </span>
-                  </td>
-                  <td>
-                    <span className={`badge status-${c.status}`}>
-                      {(STATUS_LABELS_AR as any)[c.status] || c.status}
-                    </span>
-                  </td>
-                  <td>{c.assigned_user_name || <span style={{ color: '#94a3b8' }}>—</span>}</td>
-                  <td style={{ fontSize: '0.85rem' }}>{c.kiosk_location}</td>
-                  <td style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>{formatDate(c.created_at)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+      <DataTable
+        data={data}
+        columns={columns}
+        loading={loading}
+        onRowClick={(row) => router.push(`/dashboard/admin/complaints/${row.id}`)}
+        currentPage={page}
+        totalPages={totalPages}
+        totalItems={total}
+        pageSize={20}
+        onPageChange={setPage}
+        emptyMessage="لا توجد شكاوى مطابقة للتصفية"
+      />
     </>
   );
 }

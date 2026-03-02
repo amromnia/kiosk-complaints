@@ -10,12 +10,6 @@ interface ComplaintType {
   priority: number;
 }
 
-interface Kiosk {
-  id: number;
-  unique_link: string;
-  location: string;
-}
-
 export default function ComplaintPage() {
   const params = useParams();
   const kioskLink = params.kiosk as string;
@@ -25,7 +19,6 @@ export default function ComplaintPage() {
   const [complaintId, setComplaintId] = useState<number | null>(null);
   const [error, setError] = useState('');
   const [complaintTypes, setComplaintTypes] = useState<ComplaintType[]>([]);
-  const [kiosk, setKiosk] = useState<Kiosk | null>(null);
   const [formData, setFormData] = useState({
     client_phone: '',
     client_national_id: '',
@@ -39,7 +32,6 @@ export default function ComplaintPage() {
 
   useEffect(() => {
     fetchComplaintTypes();
-    fetchKiosk();
   }, []);
 
   const fetchComplaintTypes = async () => {
@@ -48,15 +40,6 @@ export default function ComplaintPage() {
       const data = await res.json();
       setComplaintTypes(data.types);
     } catch (err) { console.error('Error fetching complaint types:', err); }
-  };
-
-  const fetchKiosk = async () => {
-    try {
-      const res = await fetch('/api/kiosks');
-      const data = await res.json();
-      const found = data.kiosks.find((k: Kiosk) => k.unique_link === kioskLink);
-      setKiosk(found || null);
-    } catch (err) { console.error('Error fetching kiosk:', err); }
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -118,7 +101,7 @@ export default function ComplaintPage() {
   if (submitted) {
     return (
       <div className="min-h-screen flex flex-col" style={{ background: 'var(--color-bg)' }}>
-        <Header kiosk={kiosk} />
+        <Header />
         <main className="flex-1 flex items-center justify-center py-12 px-4">
           <div className="w-full max-w-lg">
             <div className="card text-center animate-fade-in" style={{ padding: '48px 32px' }}>
@@ -162,7 +145,7 @@ export default function ComplaintPage() {
   /* ===== FORM STATE ===== */
   return (
     <div className="min-h-screen flex flex-col" style={{ background: 'var(--color-bg)' }}>
-      <Header kiosk={kiosk} />
+      <Header />
 
       <main className="flex-1 flex items-center justify-center py-8 px-4">
         <div className="w-full max-w-3xl">
@@ -289,7 +272,7 @@ export default function ComplaintPage() {
 }
 
 /* ===== SUB-COMPONENTS ===== */
-function Header({ kiosk }: { kiosk: Kiosk | null }) {
+function Header() {
   return (
     <header style={{ background: 'linear-gradient(135deg, var(--color-navy) 0%, var(--color-navy-light) 100%)', color: 'white', padding: '32px 0', boxShadow: '0 4px 20px rgba(0,0,0,0.1)' }}>
       <div className="container-app">
@@ -303,12 +286,6 @@ function Header({ kiosk }: { kiosk: Kiosk | null }) {
               <p className="text-sm opacity-90">وزارة الداخلية — جمهورية مصر العربية</p>
             </div>
           </div>
-          {kiosk && (
-            <div className="px-6 py-3 rounded-lg text-center" style={{ background: 'rgba(200,168,78,0.15)', border: '1px solid var(--color-gold)' }}>
-              <p className="text-xs opacity-75 mb-1">الموقع</p>
-              <p className="font-bold text-lg" style={{ color: 'var(--color-gold)' }}>{kiosk.location}</p>
-            </div>
-          )}
         </div>
       </div>
     </header>

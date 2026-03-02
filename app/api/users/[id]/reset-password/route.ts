@@ -34,7 +34,13 @@ export async function PUT(
     if (session.id === targetUserId) {
       // User resetting their own password - allowed for all
     } else if (session.role === 'superadmin') {
-      // Superadmin can reset anyone's password
+      // Superadmin can reset admin and user passwords, but not other superadmins
+      if (targetUser.role === 'superadmin') {
+        return NextResponse.json(
+          { error: 'لا يمكن إعادة تعيين كلمة مرور مدير أعلى آخر' },
+          { status: 403 }
+        );
+      }
     } else if (session.role === 'admin') {
       // Admin can reset users' passwords only, not other admins/superadmins
       if (targetUser.role !== 'user') {

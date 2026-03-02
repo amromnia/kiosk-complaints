@@ -369,3 +369,192 @@ export const getUserPerformance = () => {
     ORDER BY total_complaints DESC
   `).all();
 };
+
+// Pagination Queries
+export const getComplaintsPaginated = (filters?: {
+  status?: string;
+  priority?: string;
+  assigned_user_id?: number;
+  complaint_type_id?: number;
+  date_from?: string;
+  date_to?: string;
+  search?: string;
+  page?: number;
+  pageSize?: number;
+}) => {
+  const page = filters?.page || 1;
+  const pageSize = filters?.pageSize || 20;
+  const offset = (page - 1) * pageSize;
+
+  let query = `
+    SELECT 
+      c.*,
+      ct.name_ar as type_name,
+      k.location as kiosk_location,
+      u.name as assigned_user_name
+    FROM complaints c
+    LEFT JOIN complaint_types ct ON c.complaint_type_id = ct.id
+    LEFT JOIN kiosks k ON c.kiosk_id = k.id
+    LEFT JOIN users u ON c.assigned_user_id = u.id
+    WHERE 1=1
+  `;
+
+  let countQuery = `
+    SELECT COUNT(*) as total
+    FROM complaints c
+    WHERE 1=1
+  `;
+
+  const params: any[] = [];
+
+  if (filters?.status) {
+    query += ' AND c.status = ?';
+    countQuery += ' AND c.status = ?';
+    params.push(filters.status);
+  }
+
+  if (filters?.priority) {
+    query += ' AND c.priority = ?';
+    countQuery += ' AND c.priority = ?';
+    params.push(filters.priority);
+  }
+
+  if (filters?.assigned_user_id) {
+    query += ' AND c.assigned_user_id = ?';
+    countQuery += ' AND c.assigned_user_id = ?';
+    params.push(filters.assigned_user_id);
+  }
+
+  if (filters?.complaint_type_id) {
+    query += ' AND c.complaint_type_id = ?';
+    countQuery += ' AND c.complaint_type_id = ?';
+    params.push(filters.complaint_type_id);
+  }
+
+  if (filters?.date_from) {
+    query += ' AND DATE(c.created_at) >= DATE(?)';
+    countQuery += ' AND DATE(c.created_at) >= DATE(?)';
+    params.push(filters.date_from);
+  }
+
+  if (filters?.date_to) {
+    query += ' AND DATE(c.created_at) <= DATE(?)';
+    countQuery += ' AND DATE(c.created_at) <= DATE(?)';
+    params.push(filters.date_to);
+  }
+
+  if (filters?.search) {
+    query += ' AND (c.client_name LIKE ? OR c.client_phone LIKE ? OR c.description LIKE ?)';
+    countQuery += ' AND (c.client_name LIKE ? OR c.client_phone LIKE ? OR c.description LIKE ?)';
+    const searchTerm = `%${filters.search}%`;
+    params.push(searchTerm, searchTerm, searchTerm);
+  }
+
+  query += ' ORDER BY c.created_at DESC LIMIT ? OFFSET ?';
+
+  const complaints = db.prepare(query).all(...params, pageSize, offset);
+  const { total } = db.prepare(countQuery).get(...params) as { total: number };
+
+  return {
+    complaints,
+    total,
+    page,
+    pageSize,
+    totalPages: Math.ceil(total / pageSize),
+  };
+};
+
+export const getUsersPaginated = (filters?: {
+  search?: string;
+  role?: string;
+  status?: string;
+  page?: number;
+  pageSize?: number;
+}) => {
+  const page = filters?.page || 1;
+  const pageSize = filters?.pageSize || 20;
+  const offset = (page - 1) * pageSize;
+
+  let query = 'SELECT id, name, email, role, status, created_at FROM users WHERE 1=1';
+  let countQuery = 'SELECT COUNT(*) as total FROM users WHERE 1=1';
+  const params: any[] = [];
+
+  if (filters?.search) {
+    query += ' AND (name LIKE ? OR email LIKE ?)';
+    countQuery += ' AND (name LIKE ? OR email LIKE ?)';
+    const searchTerm = `%${filters.search}%`;
+    params.push(searchTerm, searchTerm);
+  }
+
+  if (filters?.role) {
+    query += ' AND role = ?';
+    countQuery += ' AND role = ?';
+    params.push(filters.role);
+  }
+
+  if (filters?.status) {
+    query += ' AND status = ?';
+    countQuery += ' AND status = ?';
+    params.push(filters.status);
+  }
+
+  query += ' ORDER BY created_at DESC LIMIT ? OFFSET ?';
+
+  const users = db.prepare(query).all(...params, pageSize, offset);
+  const { total } = db.prepare(countQuery).get(...params) as { total: number };
+
+  return {
+    users,
+    total,
+    page,
+    pageSize,
+    totalPages: Math.ceil(total / pageSize),
+  };
+};
+
+export const getKiosksPaginated = (filters?: {
+  search?: string;
+  is_disabled?: boolean;
+  page?: number;
+  pageSize?: number;
+}) => {
+  const page = filters?.page || 1;
+  const pageSize = filters?.pageSize || 20;
+  const offset = (page - 1) * pageSize;
+
+  let query = 'SELECT * FROM kiosks WHERE 1=1';
+  let countQuery = 'SELECT COUNT(*) as total FROM kiosks WHERE 1=1';
+  const params: any[] = [];
+
+  if (filters?.search) {
+    query += ' AND (location LIKE ? OR unique_link LIKE ?)';
+    countQuery += ' AND (location LIKE ? OR unique_link LIKE ?)';
+    const searchTerm = `%${filters.search}%`;
+    params.push(searchTerm, searchTerm);
+  }
+
+  if (filters?.is_disabled !== undefined) {
+    query += ' AND is_disabled = ?';
+    countQuery += ' AND is_disabled = ?';
+    params.push(filters.is_disabled ? 1 : 0);
+  }
+
+  query += ' ORDER BY location ASC LIMIT ? OFFSET ?';
+
+  const kiosks = db.prepare(query).all(...params, pageSize, offset);
+  const { total } = db.prepare(countQuery).get(...params) as { total: number };
+
+  return {
+    kiosks,
+    total,
+    page,
+    pageSize,
+    totalPages: Math.ceil(total / pageSize),
+  };
+};
+
+// Kiosk disable/enable
+export const toggleKioskStatus = (id: number, isDisabled: boolean) => {
+  return db.prepare('UPDATE kiosks SET is_disabled = ? WHERE id = ?').run(isDisabled ? 1 : 0, id);
+};
+

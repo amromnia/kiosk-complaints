@@ -30,7 +30,7 @@ export default function AdminComplaintDetailPage() {
       const [compRes, commentsRes, usersRes] = await Promise.all([
         fetch(`/api/complaints/${id}`),
         fetch(`/api/complaints/${id}/comments`),
-        fetch('/api/users'),
+        fetch('/api/users?pageSize=1000'),
       ]);
       const compData = compRes.ok ? await compRes.json() : {};
       const commentsData = commentsRes.ok ? await commentsRes.json() : {};

@@ -40,7 +40,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     }
     
     // Check permissions based on role hierarchy
-    const currentUserRole = session.user.role;
+    const currentUserRole = session.role;
     const targetUserRole = targetUser.role;
     
     // Superadmin cannot be disabled
