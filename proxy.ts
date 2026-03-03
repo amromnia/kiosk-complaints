@@ -12,7 +12,7 @@ import { verifyToken } from './lib/auth/jwt';
  * - Endpoint normalization (dynamic routes)
  */
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   
   // Skip rate limiting for static files and Next.js internals
@@ -116,8 +116,6 @@ export async function middleware(request: NextRequest) {
 
 // Configure which routes the middleware should run on
 export const config = {
-  // Use Node.js runtime to support ioredis, fs, and other Node.js APIs
-  runtime: 'nodejs',
   matcher: [
     /*
      * Match all request paths except:
@@ -127,5 +125,5 @@ export const config = {
      * - public folder files
      */
     '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
-  ],
+  ]
 };
