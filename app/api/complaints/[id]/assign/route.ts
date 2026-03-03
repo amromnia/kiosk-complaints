@@ -2,9 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/auth/session';
 import { 
   getComplaintById,
-  assignComplaint,
-  createNotification,
-  createStatusHistory
+  assignComplaintWithNotification
 } from '@/lib/db/queries';
 
 export async function POST(
@@ -33,30 +31,16 @@ export async function POST(
       );
     }
     
+    const session = await requireAdmin();
     const oldStatus = complaint.status;
     
-    // Assign complaint (also updates status to 'assigned')
-    assignComplaint(complaintId, user_id);
-    
-    // Create status history if status changed
-    if (oldStatus !== 'assigned') {
-      const session = await requireAdmin();
-      createStatusHistory(
-        complaintId,
-        session.id,
-        oldStatus,
-        'assigned',
-        `تم تكليف الشكوى إلى موظف`
-      );
-    }
-    
-    // Notify user
-    createNotification(
-      user_id,
+    // Assign complaint with status history and notification in a transaction
+    assignComplaintWithNotification({
       complaintId,
-      'assignment',
-      `تم تكليفك بالشكوى #${complaintId}`
-    );
+      userId: user_id,
+      adminId: session.id,
+      oldStatus
+    });
     
     return NextResponse.json({ 
       success: true,

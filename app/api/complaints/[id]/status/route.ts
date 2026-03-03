@@ -2,9 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth/session';
 import { 
   getComplaintById,
-  updateComplaintStatus, 
-  createStatusHistory,
-  createNotification
+  updateComplaintStatusWithHistory
 } from '@/lib/db/queries';
 import { isValidStatusTransition, getStatusTransitionError } from '@/lib/utils/status-workflow';
 
@@ -52,21 +50,15 @@ export async function PUT(
       );
     }
     
-    // Update status
-    updateComplaintStatus(complaintId, status);
-    
-    // Create history record
-    createStatusHistory(complaintId, session.id, oldStatus, status, description);
-    
-    // Notify assigned user if admin changed status
-    if (complaint.assigned_user_id && session.role === 'admin') {
-      createNotification(
-        complaint.assigned_user_id,
-        complaintId,
-        'status_change',
-        `تم تغيير حالة الشكوى #${complaintId} إلى ${status}`
-      );
-    }
+    // Update status with history and notifications in a transaction
+    updateComplaintStatusWithHistory({
+      complaintId,
+      userId: session.id,
+      oldStatus,
+      newStatus: status,
+      description,
+      complaint
+    });
     
     return NextResponse.json({ 
       success: true,

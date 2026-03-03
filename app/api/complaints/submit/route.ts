@@ -1,12 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { 
-  createComplaint, 
-  createAttachment,
+  submitComplaintWithAttachments,
   getKioskByLink,
   getComplaintTypeById,
   getAutoAssignmentRules,
-  assignComplaint,
-  createNotification,
   getActiveUsers
 } from '@/lib/db/queries';
 import { 
@@ -102,62 +99,24 @@ export async function POST(request: NextRequest) {
     // Get priority from complaint type
     const priority = getPriorityFromType(complaintType.priority);
     
-    // Create complaint
-    const complaintResult = createComplaint({
+    // Get auto-assignment rules and active users if needed
+    const autoAssignmentRules = complaintType.auto_assignment_enabled ? getAutoAssignmentRules(complaint_type_id) : undefined;
+    const activeUsers = !complaintType.auto_assignment_enabled ? getActiveUsers() : undefined;
+    
+    // Create complaint with attachments and auto-assignment in a transaction
+    const complaintId = submitComplaintWithAttachments({
       client_phone,
       client_national_id,
       client_name: sanitizedName,
       complaint_type_id,
       description: sanitizedDescription,
       kiosk_id: kiosk.id,
-      priority
+      priority,
+      attachments,
+      complaintType,
+      autoAssignmentRules,
+      activeUsers
     });
-    
-    const complaintId = complaintResult.lastInsertRowid as number;
-    
-    // Save attachments
-    if (attachments && attachments.length > 0) {
-      for (const attachment of attachments) {
-        createAttachment(
-          complaintId,
-          attachment.path,
-          attachment.type,
-          'client'
-        );
-      }
-    }
-    
-    // Check for auto-assignment
-    if (complaintType.auto_assignment_enabled) {
-      const rules: any[] = getAutoAssignmentRules(complaint_type_id);
-      
-      if (rules.length > 0) {
-        // Assign to first user in rules (can be randomized or load-balanced)
-        const assignedUserId = rules[0].user_id;
-        assignComplaint(complaintId, assignedUserId);
-        
-        // Send notification to assigned user
-        createNotification(
-          assignedUserId,
-          complaintId,
-          'assignment',
-          `تم تكليفك بشكوى جديدة رقم #${complaintId}`
-        );
-      }
-    } else {
-      // Send notification to all admins
-      const users: any[] = getActiveUsers();
-      const admins = users.filter(u => u.role === 'admin');
-      
-      for (const admin of admins) {
-        createNotification(
-          admin.id,
-          complaintId,
-          'new_complaint',
-          `شكوى جديدة رقم #${complaintId} بحاجة للتكليف`
-        );
-      }
-    }
     
     return NextResponse.json({
       success: true,

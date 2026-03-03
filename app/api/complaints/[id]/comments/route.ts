@@ -3,8 +3,7 @@ import { requireAuth } from '@/lib/auth/session';
 import { 
   getComplaintById,
   getComplaintComments,
-  createComment,
-  createNotification
+  createCommentWithNotification
 } from '@/lib/db/queries';
 
 export async function GET(
@@ -56,18 +55,14 @@ export async function POST(
       );
     }
     
-    // Create comment
-    createComment(complaintId, session.id, comment_text, !!is_internal);
-    
-    // Notify relevant users
-    if (complaint.assigned_user_id && complaint.assigned_user_id !== session.id) {
-      createNotification(
-        complaint.assigned_user_id,
-        complaintId,
-        'comment',
-        `تعليق جديد على الشكوى #${complaintId}`
-      );
-    }
+    // Create comment with notification in a transaction
+    createCommentWithNotification({
+      complaintId,
+      userId: session.id,
+      commentText: comment_text,
+      isInternal: !!is_internal,
+      complaint
+    });
     
     return NextResponse.json({ 
       success: true,

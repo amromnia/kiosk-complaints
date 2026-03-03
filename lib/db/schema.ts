@@ -14,6 +14,15 @@ const db = new Database(dbPath);
 // Enable foreign keys
 db.pragma('foreign_keys = ON');
 
+// performance optimizations
+db.pragma('journal_mode = WAL');
+db.pragma('synchronous = FULL');
+db.pragma('cache_size = 10000');
+db.pragma('temp_store = DEFAULT');
+db.pragma('wal_autocheckpoint = 1000'); // checkpoint after every 1000 writes to keep WAL file from growing too large
+db.pragma('busy_timeout = 10000'); // wait up to 10 seconds if database is locked before throwing an error
+
+
 export const initDatabase = () => {
   // Users Table
   db.exec(`
@@ -176,7 +185,87 @@ export const initDatabase = () => {
     )
   `);
 
+  // ==================== INDEXES FOR PERFORMANCE ====================
+  
+  // Complaints table indexes - most frequently queried table
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_complaints_status ON complaints(status)`);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_complaints_assigned_user_id ON complaints(assigned_user_id)`);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_complaints_complaint_type_id ON complaints(complaint_type_id)`);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_complaints_kiosk_id ON complaints(kiosk_id)`);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_complaints_created_at ON complaints(created_at DESC)`);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_complaints_closed_at ON complaints(closed_at)`);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_complaints_priority ON complaints(priority)`);
+  
+  // Composite indexes for common query patterns and filtering
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_complaints_status_assigned_user ON complaints(status, assigned_user_id)`);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_complaints_status_created_at ON complaints(status, created_at DESC)`);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_complaints_assigned_user_status ON complaints(assigned_user_id, status)`);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_complaints_assigned_user_created_at ON complaints(assigned_user_id, created_at DESC)`);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_complaints_complaint_type_created_at ON complaints(complaint_type_id, created_at DESC)`);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_complaints_priority_created_at ON complaints(priority, created_at DESC)`);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_complaints_status_assigned_created ON complaints(status, assigned_user_id, created_at DESC)`);
+  
+  // Search indexes for complaints
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_complaints_client_phone ON complaints(client_phone)`);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_complaints_client_national_id ON complaints(client_national_id)`);
+  
+  // Users table indexes
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_users_role ON users(role)`);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_users_status ON users(status)`);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_users_role_status ON users(role, status)`);
+  
+  // Complaint Types table indexes - for hierarchical queries
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_complaint_types_parent_id ON complaint_types(parent_id)`);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_complaint_types_level ON complaint_types(level)`);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_complaint_types_level_display_order ON complaint_types(level, display_order)`);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_complaint_types_parent_level ON complaint_types(parent_id, level)`);
+  
+  // Kiosks table indexes
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_kiosks_is_disabled ON kiosks(is_disabled)`);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_kiosks_location ON kiosks(location)`);
+  
+  // Attachments table indexes
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_attachments_complaint_id ON attachments(complaint_id)`);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_attachments_complaint_upload_date ON attachments(complaint_id, upload_date DESC)`);
+  
+  // Comments table indexes
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_comments_complaint_id ON comments(complaint_id)`);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_comments_user_id ON comments(user_id)`);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_comments_complaint_created ON comments(complaint_id, created_at DESC)`);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_comments_is_internal ON comments(is_internal)`);
+  
+  // Status History table indexes
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_status_history_complaint_id ON status_history(complaint_id)`);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_status_history_complaint_created ON status_history(complaint_id, created_at DESC)`);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_status_history_user_id ON status_history(user_id)`);
+  
+  // Auto Assignment Rules table indexes
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_auto_assignment_complaint_type_id ON auto_assignment_rules(complaint_type_id)`);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_auto_assignment_user_id ON auto_assignment_rules(user_id)`);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_auto_assignment_is_active ON auto_assignment_rules(is_active)`);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_auto_assignment_complaint_type_active ON auto_assignment_rules(complaint_type_id, is_active)`);
+  
+  // Notifications table indexes - critical for user experience
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_notifications_user_id ON notifications(user_id)`);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_notifications_complaint_id ON notifications(complaint_id)`);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_notifications_is_read ON notifications(is_read)`);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_notifications_created_at ON notifications(created_at DESC)`);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_notifications_user_unread ON notifications(user_id, is_read)`);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_notifications_user_created ON notifications(user_id, created_at DESC)`);
+  
+  // Registration Links table indexes
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_registration_links_expires_at ON registration_links(expires_at)`);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_registration_links_is_used ON registration_links(is_used)`);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_registration_links_user_id ON registration_links(user_id)`);
+  
+  // User Devices table indexes
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_user_devices_user_id ON user_devices(user_id)`);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_user_devices_device_fingerprint ON user_devices(device_fingerprint)`);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_user_devices_is_active ON user_devices(is_active)`);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_user_devices_user_fingerprint_active ON user_devices(user_id, device_fingerprint, is_active)`);
+
   console.log('✅ Database schema initialized successfully');
+  console.log('✅ Performance indexes created');
 };
 
 export default db;
