@@ -31,14 +31,14 @@ export class AbuseDetector {
     const now = Date.now();
     const key = `${identifier}:${endpoint}`;
 
-    // Check 1: Rapid-fire requests (< 50ms spacing)
+    // Check 1: Rapid-fire requests (< 10ms spacing = likely bot)
     const lastTime = this.lastRequestTime.get(key);
-    if (lastTime && now - lastTime < 50) {
+    if (lastTime && now - lastTime < 10) {
       await this.recordAbuse(identifier, 'rapid-fire');
       return {
         isAbuse: true,
         reason: 'Rapid-fire requests detected',
-        multiplier: 3,
+        multiplier: 2,
       };
     }
     this.lastRequestTime.set(key, now);
@@ -50,32 +50,32 @@ export class AbuseDetector {
       if (spacing.length > 10) spacing.shift();
       this.requestSpacing.set(key, spacing);
 
-      // Check for suspiciously consistent timing
-      if (spacing.length >= 5) {
+      // Check for suspiciously consistent timing (more lenient)
+      if (spacing.length >= 10) {
         const avg = spacing.reduce((a, b) => a + b, 0) / spacing.length;
         const variance =
           spacing.reduce((sum, val) => sum + Math.pow(val - avg, 2), 0) / spacing.length;
         const stdDev = Math.sqrt(variance);
 
-        // If timing is too consistent (stdDev < 10ms), likely a bot
-        if (stdDev < 10 && avg < 200) {
+        // If timing is extremely consistent (stdDev < 5ms) and very fast, likely a bot
+        if (stdDev < 5 && avg < 50) {
           await this.recordAbuse(identifier, 'bot-pattern');
           return {
             isAbuse: true,
             reason: 'Automated request pattern detected',
-            multiplier: 5,
+            multiplier: 3,
           };
         }
       }
     }
 
-    // Check 3: Recent abuse history
+    // Check 3: Recent abuse history (more lenient threshold)
     const abuseCount = await this.getAbuseCount(identifier);
-    if (abuseCount >= 3) {
+    if (abuseCount >= 10) {
       return {
         isAbuse: true,
         reason: 'Multiple abuse violations',
-        multiplier: Math.min(10, 2 + abuseCount),
+        multiplier: Math.min(5, 2 + Math.floor(abuseCount / 3)),
       };
     }
 
@@ -115,7 +115,7 @@ export class AbuseDetector {
   }
 
   /**
-   * Progressive delay for authentication failures
+   * Progressive delay for authentication failures (more forgiving)
    */
   async getAuthDelay(identifier: string): Promise<number> {
     const key = `auth-failures:${identifier}`;
@@ -125,14 +125,14 @@ export class AbuseDetector {
     try {
       const count = await this.store.recordFailure(key, 0);
 
-      // Progressive delay: 0, 1s, 2s, 4s, 8s, 16s, 30s (max)
-      if (count === 0) return 0;
-      if (count === 1) return 1000;
-      if (count === 2) return 2000;
-      if (count === 3) return 4000;
-      if (count === 4) return 8000;
-      if (count === 5) return 16000;
-      return 30000; // Max 30 seconds
+      // Progressive delay: Allow 10 free attempts, then gradually increase
+      if (count < 10) return 0;
+      if (count === 10) return 500;
+      if (count === 11) return 1000;
+      if (count === 12) return 2000;
+      if (count === 13) return 4000;
+      if (count === 14) return 8000;
+      return 15000; // Max 15 seconds
     } catch {
       return 0;
     }

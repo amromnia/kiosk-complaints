@@ -10,27 +10,28 @@ import {
 
 /**
  * Rate Limit Configuration by Tier
+ * More forgiving limits to allow legitimate usage
  */
 const TIER_CONFIGS: Record<string, TokenBucketConfig> = {
   auth: {
-    maxTokens: 5,
+    maxTokens: 20,
     windowMs: 15 * 60 * 1000, // 15 minutes
-    refillRate: 5 / (15 * 60), // 5 tokens per 15 minutes
+    refillRate: 20 / (15 * 60), // 20 tokens per 15 minutes
   },
   mutation: {
-    maxTokens: 30,
-    windowMs: 60 * 1000, // 1 minute
-    refillRate: 30 / 60, // 30 tokens per minute
-  },
-  query: {
-    maxTokens: 60,
-    windowMs: 60 * 1000, // 1 minute
-    refillRate: 60 / 60, // 60 tokens per minute
-  },
-  public: {
     maxTokens: 100,
     windowMs: 60 * 1000, // 1 minute
     refillRate: 100 / 60, // 100 tokens per minute
+  },
+  query: {
+    maxTokens: 200,
+    windowMs: 60 * 1000, // 1 minute
+    refillRate: 200 / 60, // 200 tokens per minute
+  },
+  public: {
+    maxTokens: 300,
+    windowMs: 60 * 1000, // 1 minute
+    refillRate: 300 / 60, // 300 tokens per minute
   },
 };
 
