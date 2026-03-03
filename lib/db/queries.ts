@@ -164,7 +164,7 @@ export const reopenComplaint = (complaintId: number) => {
 
 // Complaint Types Queries
 export const getAllComplaintTypes = () => {
-  return db.prepare('SELECT * FROM complaint_types ORDER BY priority ASC, name_ar ASC').all();
+  return db.prepare('SELECT * FROM complaint_types ORDER BY level ASC, display_order ASC').all();
 };
 
 export const getComplaintTypeById = (id: number) => {

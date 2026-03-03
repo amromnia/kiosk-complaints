@@ -33,10 +33,14 @@ export const initDatabase = () => {
     CREATE TABLE IF NOT EXISTS complaint_types (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       name_ar TEXT NOT NULL,
+      parent_id INTEGER,
+      level INTEGER NOT NULL DEFAULT 1 CHECK(level BETWEEN 1 AND 3),
       priority INTEGER NOT NULL CHECK(priority BETWEEN 1 AND 3),
       requires_image BOOLEAN NOT NULL DEFAULT 0,
       auto_assignment_enabled BOOLEAN NOT NULL DEFAULT 0,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      display_order INTEGER NOT NULL DEFAULT 0,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (parent_id) REFERENCES complaint_types(id) ON DELETE CASCADE
     )
   `);
 

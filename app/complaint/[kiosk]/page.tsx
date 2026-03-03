@@ -6,8 +6,11 @@ import { useParams } from 'next/navigation';
 interface ComplaintType {
   id: number;
   name_ar: string;
+  parent_id: number | null;
+  level: number;
   requires_image: boolean;
   priority: number;
+  display_order: number;
 }
 
 export default function ComplaintPage() {
@@ -252,12 +255,62 @@ export default function ComplaintPage() {
               <div>
                 <label className="form-label">نوع الشكوى *</label>
                 <select className="form-input" value={formData.complaint_type_id}
-                  onChange={(e) => setFormData({ ...formData, complaint_type_id: e.target.value })} required>
+                  onChange={(e) => setFormData({ ...formData, complaint_type_id: e.target.value })} required
+                  style={{ fontSize: '0.95rem' }}>
                   <option value="">اختر نوع الشكوى</option>
-                  {complaintTypes.map(type => (
-                    <option key={type.id} value={type.id}>{type.name_ar}{type.requires_image ? ' (يتطلب صورة)' : ''}</option>
-                  ))}
+                  {(() => {
+                    // Group complaint types hierarchically
+                    const level1Types = complaintTypes.filter(t => t.level === 1).sort((a, b) => a.display_order - b.display_order);
+                    
+                    return level1Types.flatMap(mainType => {
+                      const level2Types = complaintTypes.filter(t => t.parent_id === mainType.id && t.level === 2).sort((a, b) => a.display_order - b.display_order);
+                      
+                      // If main type has no subtypes, show it directly
+                      if (level2Types.length === 0) {
+                        return (
+                          <option key={mainType.id} value={mainType.id}>
+                            {mainType.name_ar}
+                          </option>
+                        );
+                      }
+                      
+                      // Show subtypes grouped under main type
+                      return [
+                        <optgroup key={mainType.id} label={`━━━ ${mainType.name_ar} ━━━`}>
+                          {level2Types.flatMap(subType => {
+                            const level3Types = complaintTypes.filter(t => t.parent_id === subType.id && t.level === 3).sort((a, b) => a.display_order - b.display_order);
+                            
+                            // If subtype has children (level 3), show subtype as disabled header then list children
+                            if (level3Types.length > 0) {
+                              return [
+                                <option key={`header-${subType.id}`} disabled style={{ fontWeight: 600, color: '#1e293b', paddingTop: '4px' }}>
+                                  - {subType.name_ar} -
+                                </option>,
+                                ...level3Types.map(leafType => (
+                                  <option key={leafType.id} value={leafType.id}>
+                                    {'    ' + leafType.name_ar}
+                                    {/* {leafType.requires_image ? ' ⚠️' : ''} */}
+                                  </option>
+                                ))
+                              ];
+                            } else {
+                              // Subtype is selectable (no level 3 children)
+                              return (
+                                <option key={subType.id} value={subType.id}>
+                                  {subType.name_ar}
+                                  {/* {subType.requires_image ? ' ⚠️' : ''} */}
+                                </option>
+                              );
+                            }
+                          })}
+                        </optgroup>
+                      ];
+                    });
+                  })()}
                 </select>
+                {selectedType?.requires_image ? (
+                  <p className="text-xs mt-1" style={{ color: '#f59e0b' }}>⚠️ هذا النوع يتطلب إرفاق صور</p>
+                ) : null}
               </div>
 
               <div>
