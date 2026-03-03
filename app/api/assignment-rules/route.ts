@@ -46,6 +46,10 @@ export async function POST(request: NextRequest) {
     if (error.message === 'Unauthorized') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+    // Handle unique constraint violation
+    if (error.message && error.message.includes('UNIQUE constraint failed')) {
+      return NextResponse.json({ error: 'هذا الموظف مُكلف بالفعل بهذا النوع من الشكاوى' }, { status: 400 });
+    }
     console.error('Create assignment rule error:', error);
     return NextResponse.json({ error: 'حدث خطأ' }, { status: 500 });
   }

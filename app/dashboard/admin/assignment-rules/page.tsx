@@ -88,6 +88,17 @@ export default function AssignmentRulesPage() {
       return;
     }
 
+    // Check if this combination already exists
+    const duplicate = rules.find(
+      r => r.complaint_type_id === parseInt(newRule.complaint_type_id) && 
+           r.user_id === parseInt(newRule.user_id)
+    );
+    
+    if (duplicate) {
+      setError('هذا الموظف مُكلف بالفعل بهذا النوع من الشكاوى');
+      return;
+    }
+
     setSubmitting(true);
     setError('');
     setSuccess('');

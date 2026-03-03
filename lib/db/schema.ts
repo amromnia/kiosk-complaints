@@ -138,7 +138,8 @@ export const initDatabase = () => {
       is_active BOOLEAN NOT NULL DEFAULT 1,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (complaint_type_id) REFERENCES complaint_types(id) ON DELETE CASCADE,
-      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+      UNIQUE(complaint_type_id, user_id)
     )
   `);
 
