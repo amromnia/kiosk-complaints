@@ -3,6 +3,7 @@
 import { useState, useEffect, ReactNode } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import DashboardSidebar from '@/components/DashboardSidebar';
+import UserMenu from '@/components/UserMenu';
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -78,15 +79,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           </button>
           <div className="hidden lg:block" />
           
-          <div className="flex items-center gap-3">
-            <span className="text-sm font-medium" style={{ color: 'var(--color-text-secondary)' }}>
-              {user.name}
-            </span>
-            <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold"
-              style={{ background: 'var(--color-navy)', color: '#fff' }}>
-              {user.name.charAt(0)}
-            </div>
-          </div>
+          <UserMenu user={user} />
         </div>
         
         {/* Page content */}

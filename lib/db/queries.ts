@@ -92,6 +92,22 @@ const stmtUseRegistrationLink = db.prepare('UPDATE registration_links SET is_use
 const stmtRegisterDevice = db.prepare('INSERT INTO user_devices (user_id, device_fingerprint, registration_token) VALUES (?, ?, ?)');
 const stmtGetUserDevice = db.prepare('SELECT * FROM user_devices WHERE user_id = ? AND device_fingerprint = ? AND is_active = 1');
 
+// System Settings statements
+const stmtGetSystemSetting = db.prepare('SELECT value FROM system_settings WHERE key = ?');
+const stmtSetSystemSetting = db.prepare('INSERT OR REPLACE INTO system_settings (key, value, updated_at) VALUES (?, ?, CURRENT_TIMESTAMP)');
+
+// Auto-assignment query - get user with least active complaints
+const stmtGetUserWithLeastComplaints = db.prepare(`
+  SELECT u.id, u.name, COUNT(c.id) as active_complaints
+  FROM users u
+  LEFT JOIN complaints c ON u.id = c.assigned_user_id 
+    AND c.status NOT IN ('resolved', 'closed')
+  WHERE u.role = 'user' AND u.status = 'active'
+  GROUP BY u.id, u.name
+  ORDER BY active_complaints ASC, u.id ASC
+  LIMIT 1
+`);
+
 // Analytics statements
 const stmtComplaintStatsTotal = db.prepare('SELECT COUNT(*) as count FROM complaints');
 const stmtComplaintStatsByStatus = db.prepare('SELECT COUNT(*) as count FROM complaints WHERE status = ?');
@@ -406,6 +422,28 @@ export const getUserDevice = (userId: number, deviceFingerprint: string) => {
   return stmtGetUserDevice.get(userId, deviceFingerprint);
 };
 
+// ==================== SYSTEM SETTINGS QUERIES ====================
+
+export const getSystemSetting = (key: string): string | null => {
+  const result = stmtGetSystemSetting.get(key) as { value: string } | undefined;
+  return result ? result.value : null;
+};
+
+export const setSystemSetting = (key: string, value: string) => {
+  return stmtSetSystemSetting.run(key, value);
+};
+
+export const isAutoAssignmentEnabled = (): boolean => {
+  const value = getSystemSetting('auto_assignment_enabled');
+  return value === 'true';
+};
+
+// ==================== AUTO-ASSIGNMENT QUERIES ====================
+
+export const getUserWithLeastComplaints = () => {
+  return stmtGetUserWithLeastComplaints.get();
+};
+
 // ==================== ANALYTICS QUERIES ====================
 
 export const getComplaintStats = () => {
@@ -659,27 +697,35 @@ export const submitComplaintWithAttachments = (data: {
       }
     }
 
-    // Auto-assignment if enabled
-    if (data.complaintType.auto_assignment_enabled && data.autoAssignmentRules && data.autoAssignmentRules.length > 0) {
-      const assignedUserId = data.autoAssignmentRules[0].user_id;
-      stmtAssignComplaint.run(assignedUserId, 'assigned', complaintId);
+    // Auto-assignment based on system setting
+    const autoAssignmentEnabled = isAutoAssignmentEnabled();
+    
+    if (autoAssignmentEnabled) {
+      // Find user with least active complaints
+      const userToAssign = stmtGetUserWithLeastComplaints.get() as { id: number; name: string; active_complaints: number } | undefined;
       
-      // Send notification to assigned user
-      stmtCreateNotification.run(
-        assignedUserId,
-        complaintId,
-        'assignment',
-        `تم تكليفك بشكوى جديدة رقم #${complaintId}`
-      );
-    } else if (data.activeUsers) {
-      // Send notification to all admins
+      if (userToAssign) {
+        stmtAssignComplaint.run(userToAssign.id, 'assigned', complaintId);
+        
+        // Send notification to assigned user
+        stmtCreateNotification.run(
+          userToAssign.id,
+          complaintId,
+          'assignment',
+          `تم تكليفك بشكوى جديدة رقم #${complaintId}`
+        );
+      }
+    }
+    
+    // Send notification to all admins
+    if (data.activeUsers) {
       const admins = data.activeUsers.filter((u: any) => u.role === 'admin');
       for (const admin of admins) {
         stmtCreateNotification.run(
           admin.id,
           complaintId,
           'new_complaint',
-          `شكوى جديدة رقم #${complaintId} بحاجة إلى مراجعة`
+          `شكوى جديدة رقم #${complaintId}${autoAssignmentEnabled ? ' تم تكليفها تلقائياً' : ' بحاجة إلى مراجعة'}`
         );
       }
     }
