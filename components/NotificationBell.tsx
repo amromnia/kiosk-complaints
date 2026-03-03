@@ -30,10 +30,10 @@ export default function NotificationBell() {
     fetchUserRole();
   }, []);
 
-  // Fetch unread count on mount and every 30 seconds
+  // Fetch unread count on mount and every 5 minutes
   useEffect(() => {
     fetchUnreadCount();
-    const interval = setInterval(fetchUnreadCount, 30000);
+    const interval = setInterval(fetchUnreadCount, 300000); // 5 minutes
     return () => clearInterval(interval);
   }, []);
 

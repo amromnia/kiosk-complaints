@@ -76,6 +76,14 @@ const stmtGetAutoAssignmentRules = db.prepare(`
   LEFT JOIN users u ON aar.user_id = u.id
   WHERE aar.complaint_type_id = ? AND aar.is_active = 1
 `);
+const stmtGetAllAutoAssignmentRules = db.prepare(`
+  SELECT aar.*, u.name as user_name, ct.name_ar as complaint_type_name
+  FROM auto_assignment_rules aar
+  LEFT JOIN users u ON aar.user_id = u.id
+  LEFT JOIN complaint_types ct ON aar.complaint_type_id = ct.id
+  WHERE aar.is_active = 1
+  ORDER BY ct.name_ar, u.name
+`);
 const stmtCreateAutoAssignmentRule = db.prepare('INSERT INTO auto_assignment_rules (complaint_type_id, user_id, is_active) VALUES (?, ?, ?)');
 const stmtDeleteAutoAssignmentRule = db.prepare('DELETE FROM auto_assignment_rules WHERE id = ?');
 
@@ -96,18 +104,6 @@ const stmtGetUserDevice = db.prepare('SELECT * FROM user_devices WHERE user_id =
 // System Settings statements
 const stmtGetSystemSetting = db.prepare('SELECT value FROM system_settings WHERE key = ?');
 const stmtSetSystemSetting = db.prepare('INSERT OR REPLACE INTO system_settings (key, value, updated_at) VALUES (?, ?, CURRENT_TIMESTAMP)');
-
-// Auto-assignment query - get user with least active complaints
-const stmtGetUserWithLeastComplaints = db.prepare(`
-  SELECT u.id, u.name, COUNT(c.id) as active_complaints
-  FROM users u
-  LEFT JOIN complaints c ON u.id = c.assigned_user_id 
-    AND c.status NOT IN ('resolved', 'closed')
-  WHERE u.role = 'user' AND u.status = 'active'
-  GROUP BY u.id, u.name
-  ORDER BY active_complaints ASC, u.id ASC
-  LIMIT 1
-`);
 
 // Analytics statements
 const stmtComplaintStatsTotal = db.prepare('SELECT COUNT(*) as count FROM complaints');
@@ -364,12 +360,37 @@ export const getAutoAssignmentRules = (complaintTypeId: number) => {
   return stmtGetAutoAssignmentRules.all(complaintTypeId);
 };
 
+export const getAllAutoAssignmentRules = () => {
+  return stmtGetAllAutoAssignmentRules.all();
+};
+
 export const createAutoAssignmentRule = (complaintTypeId: number, userId: number) => {
   return stmtCreateAutoAssignmentRule.run(complaintTypeId, userId, 1);
 };
 
 export const deleteAutoAssignmentRule = (id: number) => {
   return stmtDeleteAutoAssignmentRule.run(id);
+};
+
+/**
+ * Get user with least active complaints from a specific set of user IDs
+ */
+export const getUserWithLeastComplaintsFromSet = (userIds: number[]) => {
+  if (userIds.length === 0) return null;
+  
+  const placeholders = userIds.map(() => '?').join(',');
+  const query = `
+    SELECT u.id, u.name, COUNT(c.id) as active_complaints
+    FROM users u
+    LEFT JOIN complaints c ON u.id = c.assigned_user_id 
+      AND c.status NOT IN ('resolved', 'closed')
+    WHERE u.id IN (${placeholders}) AND u.status = 'active'
+    GROUP BY u.id, u.name
+    ORDER BY active_complaints ASC, RANDOM()
+    LIMIT 1
+  `;
+  
+  return db.prepare(query).get(...userIds);
 };
 
 // ==================== NOTIFICATION QUERIES ====================
@@ -446,12 +467,6 @@ export const setSystemSetting = (key: string, value: string) => {
 export const isAutoAssignmentEnabled = (): boolean => {
   const value = getSystemSetting('auto_assignment_enabled');
   return value === 'true';
-};
-
-// ==================== AUTO-ASSIGNMENT QUERIES ====================
-
-export const getUserWithLeastComplaints = () => {
-  return stmtGetUserWithLeastComplaints.get();
 };
 
 // ==================== ANALYTICS QUERIES ====================
@@ -707,19 +722,34 @@ export const submitComplaintWithAttachments = (data: {
       }
     }
 
-    // Auto-assignment based on system setting
+    // Auto-assignment based on rules
     const autoAssignmentEnabled = isAutoAssignmentEnabled();
+    let assignedUserId: number | null = null;
     
     if (autoAssignmentEnabled) {
-      // Find user with least active complaints
-      const userToAssign = stmtGetUserWithLeastComplaints.get() as { id: number; name: string; active_complaints: number } | undefined;
+      // Get active assignment rules for this complaint type
+      const rules = stmtGetAutoAssignmentRules.all(data.complaint_type_id) as Array<{ user_id: number; user_name: string }>;
       
-      if (userToAssign) {
-        stmtAssignComplaint.run(userToAssign.id, 'assigned', complaintId);
+      if (rules.length === 1) {
+        // Exactly one user: always assign to them
+        assignedUserId = rules[0].user_id;
+      } else if (rules.length > 1) {
+        // Multiple users: find the one with least active complaints
+        const userIds = rules.map(r => r.user_id);
+        const userToAssign = getUserWithLeastComplaintsFromSet(userIds) as { id: number; name: string; active_complaints: number } | null;
+        
+        if (userToAssign) {
+          assignedUserId = userToAssign.id;
+        }
+      }
+      // If rules.length === 0: no auto-assignment, manual only
+      
+      if (assignedUserId) {
+        stmtAssignComplaint.run(assignedUserId, 'assigned', complaintId);
         
         // Send notification to assigned user
         stmtCreateNotification.run(
-          userToAssign.id,
+          assignedUserId,
           complaintId,
           'assignment',
           `تم تكليفك بشكوى جديدة رقم #${complaintId}`
@@ -735,7 +765,7 @@ export const submitComplaintWithAttachments = (data: {
           admin.id,
           complaintId,
           'new_complaint',
-          `شكوى جديدة رقم #${complaintId}${autoAssignmentEnabled ? ' تم تكليفها تلقائياً' : ' بحاجة إلى مراجعة'}`
+          `شكوى جديدة رقم #${complaintId}${assignedUserId ? ' تم تكليفها تلقائياً' : ' بحاجة إلى مراجعة'}`
         );
       }
     }

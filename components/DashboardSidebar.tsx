@@ -21,6 +21,7 @@ const adminLinks = [
     items: [
       { href: '/dashboard/admin/users', label: 'الموظفين', icon: 'users' },
       { href: '/dashboard/admin/kiosks', label: 'الماكينات', icon: 'kiosks' },
+      { href: '/dashboard/admin/assignment-rules', label: 'قواعد التكليف', icon: 'assignment' },
     ],
   },
 ];
@@ -42,6 +43,7 @@ function NavIcon({ name }: { name: string }) {
     case 'complaints': return <svg {...props}><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="2"/><path d="M9 14l2 2 4-4"/></svg>;
     case 'users': return <svg {...props}><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>;
     case 'kiosks': return <svg {...props}><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>;
+    case 'assignment': return <svg {...props}><path d="M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="8.5" cy="7" r="4"/><polyline points="17 11 19 13 23 9"/></svg>;
     case 'profile': return <svg {...props}><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>;
     default: return <svg {...props}><circle cx="12" cy="12" r="10"/></svg>;
   }

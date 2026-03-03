@@ -64,7 +64,7 @@ export default function ComplaintPage() {
     try {
       const res = await fetch('/api/complaint-types');
       const data = await res.json();
-      setComplaintTypes(data.types);
+      setComplaintTypes(data.complaintTypes || data.types || []);
     } catch (err) { console.error('Error fetching complaint types:', err); }
   };
 
