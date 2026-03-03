@@ -81,7 +81,8 @@ const stmtDeleteAutoAssignmentRule = db.prepare('DELETE FROM auto_assignment_rul
 
 // Notification statements
 const stmtCreateNotification = db.prepare('INSERT INTO notifications (user_id, complaint_id, type, message) VALUES (?, ?, ?, ?)');
-const stmtMarkNotificationAsRead = db.prepare('UPDATE notifications SET is_read = 1 WHERE id = ?');
+const stmtDeleteNotification = db.prepare('DELETE FROM notifications WHERE id = ?');
+const stmtGetUnreadCount = db.prepare('SELECT COUNT(*) as count FROM notifications WHERE user_id = ? AND is_read = 0');
 
 // Registration Link statements
 const stmtCreateRegistrationLink = db.prepare('INSERT INTO registration_links (token, expires_at, role) VALUES (?, ?, ?)');
@@ -394,8 +395,17 @@ export const getUserNotifications = (userId: number, unreadOnly = false) => {
   return db.prepare(query).all(userId);
 };
 
-export const markNotificationAsRead = (notificationId: number) => {
-  return stmtMarkNotificationAsRead.run(notificationId);
+export const deleteNotification = (notificationId: number) => {
+  return stmtDeleteNotification.run(notificationId);
+};
+
+export const getUnreadNotificationCount = (userId: number) => {
+  const result = stmtGetUnreadCount.get(userId) as { count: number };
+  return result.count;
+};
+
+export const deleteAllUserNotifications = (userId: number) => {
+  return db.prepare('DELETE FROM notifications WHERE user_id = ?').run(userId);
 };
 
 // ==================== REGISTRATION LINK QUERIES ====================

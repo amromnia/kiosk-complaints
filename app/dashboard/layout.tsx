@@ -4,6 +4,7 @@ import { useState, useEffect, ReactNode } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import DashboardSidebar from '@/components/DashboardSidebar';
 import UserMenu from '@/components/UserMenu';
+import NotificationBell from '@/components/NotificationBell';
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -79,7 +80,10 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           </button>
           <div className="hidden lg:block" />
           
-          <UserMenu user={user} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+            <NotificationBell />
+            <UserMenu user={user} />
+          </div>
         </div>
         
         {/* Page content */}
