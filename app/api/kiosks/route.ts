@@ -34,6 +34,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: true, id: result.lastInsertRowid, uniqueLink });
   } catch (error: any) {
     console.error('Create kiosk error:', error);
-    return NextResponse.json({ error: error.message || 'حدث خطأ' }, { status: 500 });
+    return NextResponse.json({ error: 'حدث خطأ' }, { status: 500 });
   }
 }

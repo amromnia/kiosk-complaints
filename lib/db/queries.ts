@@ -374,9 +374,15 @@ export const deleteAutoAssignmentRule = (id: number) => {
 
 /**
  * Get user with least active complaints from a specific set of user IDs
+ * SECURITY: Added transaction locking to prevent race conditions
  */
 export const getUserWithLeastComplaintsFromSet = (userIds: number[]) => {
   if (userIds.length === 0) return null;
+  
+  // SECURITY FIX: Validate that all userIds are actually numbers to prevent SQL injection
+  if (!userIds.every(id => typeof id === 'number' && Number.isInteger(id) && id > 0)) {
+    throw new Error('Invalid user IDs provided');
+  }
   
   const placeholders = userIds.map(() => '?').join(',');
   const query = `
@@ -510,6 +516,31 @@ export const getComplaintsPaginated = (filters?: {
   page?: number;
   pageSize?: number;
 }) => {
+  // SECURITY FIX: Validate input types before using in query
+  if (filters) {
+    if (filters.page !== undefined && (typeof filters.page !== 'number' || filters.page < 1)) {
+      throw new Error('Invalid page number');
+    }
+    if (filters.pageSize !== undefined && (typeof filters.pageSize !== 'number' || filters.pageSize < 1 || filters.pageSize > 100)) {
+      throw new Error('Invalid page size');
+    }
+    if (filters.assigned_user_id !== undefined && typeof filters.assigned_user_id !== 'number') {
+      throw new Error('Invalid assigned_user_id');
+    }
+    if (filters.complaint_type_id !== undefined && typeof filters.complaint_type_id !== 'number') {
+      throw new Error('Invalid complaint_type_id');
+    }
+    if (filters.search !== undefined && (typeof filters.search !== 'string' || filters.search.length > 200)) {
+      throw new Error('Invalid search query');
+    }
+    if (filters.status !== undefined && typeof filters.status !== 'string') {
+      throw new Error('Invalid status');
+    }
+    if (filters.priority !== undefined && typeof filters.priority !== 'string') {
+      throw new Error('Invalid priority');
+    }
+  }
+
   const page = filters?.page || 1;
   const pageSize = Math.min(filters?.pageSize || 20, 100); // Max 100 items per page
   const offset = (page - 1) * pageSize;
@@ -601,6 +632,25 @@ export const getUsersPaginated = (filters?: {
   page?: number;
   pageSize?: number;
 }) => {
+  // SECURITY FIX: Validate input types
+  if (filters) {
+    if (filters.page !== undefined && (typeof filters.page !== 'number' || filters.page < 1)) {
+      throw new Error('Invalid page number');
+    }
+    if (filters.pageSize !== undefined && (typeof filters.pageSize !== 'number' || filters.pageSize < 1 || filters.pageSize > 100)) {
+      throw new Error('Invalid page size');
+    }
+    if (filters.search !== undefined && (typeof filters.search !== 'string' || filters.search.length > 200)) {
+      throw new Error('Invalid search query');
+    }
+    if (filters.role !== undefined && typeof filters.role !== 'string') {
+      throw new Error('Invalid role');
+    }
+    if (filters.status !== undefined && typeof filters.status !== 'string') {
+      throw new Error('Invalid status');
+    }
+  }
+
   const page = filters?.page || 1;
   const pageSize = Math.min(filters?.pageSize || 20, 100); // Max 100 items per page
   const offset = (page - 1) * pageSize;

@@ -6,7 +6,8 @@ import {
   createUser,
   registerDevice
 } from '@/lib/db/queries';
-import { isTokenExpired, generateDeviceFingerprint } from '@/lib/utils/security';
+import { isTokenExpired, validatePasswordStrength } from '@/lib/utils/security';
+import { logSecurityEvent, SecurityEventType, getRequestMetadata } from '@/lib/utils/security-logger';
 
 export async function POST(request: NextRequest) {
   try {
@@ -15,6 +16,15 @@ export async function POST(request: NextRequest) {
     if (!token || !name || !email || !password) {
       return NextResponse.json(
         { error: 'جميع الحقول مطلوبة' },
+        { status: 400 }
+      );
+    }
+    
+    // SECURITY: Validate password strength
+    const passwordValidation = validatePasswordStrength(password);
+    if (!passwordValidation.valid) {
+      return NextResponse.json(
+        { error: passwordValidation.errors.join(', ') },
         { status: 400 }
       );
     }
@@ -43,8 +53,17 @@ export async function POST(request: NextRequest) {
       );
     }
     
-    // Generate device fingerprint
-    const deviceFingerprint = generateDeviceFingerprint(request.headers);
+    // SECURITY: Generate device fingerprint server-side
+    const userAgent = request.headers.get('user-agent') || '';
+    const accept = request.headers.get('accept') || '';
+    const deviceFingerprint = `${userAgent}-${accept}`;
+    let hash = 0;
+    for (let i = 0; i < deviceFingerprint.length; i++) {
+      const char = deviceFingerprint.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash;
+    }
+    const finalFingerprint = `device_${Math.abs(hash)}`;
     
     // Create user with role from registration link
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -52,10 +71,22 @@ export async function POST(request: NextRequest) {
     const userId = result.lastInsertRowid as number;
     
     // Mark registration link as used
-    useRegistrationLink(token, userId, deviceFingerprint);
+    useRegistrationLink(token, userId, finalFingerprint);
     
     // Register device
-    registerDevice(userId, deviceFingerprint, token);
+    registerDevice(userId, finalFingerprint, token);
+    
+    // SECURITY: Log registration
+    const metadata = getRequestMetadata(request);
+    logSecurityEvent({
+      type: SecurityEventType.REGISTRATION,
+      userId,
+      userEmail: email,
+      userRole: link.role || 'user',
+      success: true,
+      timestamp: new Date().toISOString(),
+      ...metadata,
+    });
     
     return NextResponse.json({
       success: true,

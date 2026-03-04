@@ -20,9 +20,9 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     const stats = getUserStats(userId);
     
     return NextResponse.json({ success: true, user, stats });
-  } catch (error: any) {
+  } catch (error) {
     console.error('Get user error:', error);
-    return NextResponse.json({ error: error.message || 'حدث خطأ' }, { status: 500 });
+    return NextResponse.json({ error: 'حدث خطأ' }, { status: 500 });
   }
 }
 
@@ -58,8 +58,8 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     
     updateUserStatus(userId, status);
     return NextResponse.json({ success: true });
-  } catch (error: any) {
+  } catch (error) {
     console.error('Update user error:', error);
-    return NextResponse.json({ error: error.message || 'حدث خطأ' }, { status: 500 });
+    return NextResponse.json({ error: 'حدث خطأ' }, { status: 500 });
   }
 }

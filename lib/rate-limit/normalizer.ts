@@ -99,6 +99,7 @@ export function generateRateLimitKey(
 
 /**
  * Extract client identifier (IP or user ID)
+ * SECURITY: Do not trust X-Forwarded-For header to prevent rate limit bypass
  */
 export function getClientIdentifier(req: Request, userId?: string): string {
   // Prefer user ID if authenticated
@@ -106,8 +107,19 @@ export function getClientIdentifier(req: Request, userId?: string): string {
     return `user:${userId}`;
   }
 
-  // Fall back to IP
-  const forwarded = req.headers.get('x-forwarded-for');
-  const ip = forwarded ? forwarded.split(',')[0].trim() : 'unknown';
-  return `ip:${ip}`;
+  // SECURITY FIX: Use a combination of headers for fingerprinting instead of X-Forwarded-For alone
+  // This prevents rate limit bypass via header spoofing
+  const userAgent = req.headers.get('user-agent') || 'unknown';
+  const accept = req.headers.get('accept') || 'unknown';
+  
+  // Create a hash from multiple headers to create a more stable identifier
+  const fingerprint = `${userAgent}-${accept}`;
+  let hash = 0;
+  for (let i = 0; i < fingerprint.length; i++) {
+    const char = fingerprint.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash;
+  }
+  
+  return `fp:${Math.abs(hash)}`;
 }

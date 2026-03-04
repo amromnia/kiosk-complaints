@@ -3,6 +3,7 @@ import { nanoid } from 'nanoid';
 import { getSession } from '@/lib/auth/session';
 import { createRegistrationLink } from '@/lib/db/queries';
 import { addMinutes } from '@/lib/utils/security';
+import { validateCSRF } from '@/lib/utils/csrf';
 
 export async function POST(request: NextRequest) {
   try {
@@ -11,6 +12,14 @@ export async function POST(request: NextRequest) {
     if (!session || (session.role !== 'superadmin' && session.role !== 'admin')) {
       return NextResponse.json(
         { error: 'غير مصرح' },
+        { status: 403 }
+      );
+    }
+
+    // SECURITY: Validate CSRF
+    if (!validateCSRF(request, session.id)) {
+      return NextResponse.json(
+        { error: 'طلب غير صالح' },
         { status: 403 }
       );
     }
@@ -47,7 +56,7 @@ export async function POST(request: NextRequest) {
   } catch (error: any) {
     console.error('Generate registration link error:', error);
     return NextResponse.json(
-      { error: error.message || 'حدث خطأ أثناء إنشاء رابط التسجيل' },
+      { error: 'حدث خطأ أثناء إنشاء رابط التسجيل' },
       { status: 500 }
     );
   }

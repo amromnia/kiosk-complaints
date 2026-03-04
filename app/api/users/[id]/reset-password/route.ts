@@ -65,10 +65,10 @@ export async function PUT(
       success: true,
       message: 'تم إعادة تعيين كلمة المرور بنجاح'
     });
-  } catch (error: any) {
+  } catch (error) {
     console.error('Password reset error:', error);
     return NextResponse.json(
-      { error: error.message || 'حدث خطأ' },
+      { error: 'حدث خطأ' },
       { status: 500 }
     );
   }

@@ -4,13 +4,23 @@ import {
   getComplaintById,
   assignComplaintWithNotification
 } from '@/lib/db/queries';
+import { validateCSRF } from '@/lib/utils/csrf';
 
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    await requireAdmin();
+    const session = await requireAdmin();
+    
+    // SECURITY: Validate CSRF
+    if (!validateCSRF(request, session.id)) {
+      return NextResponse.json(
+        { error: 'طلب غير صالح' },
+        { status: 403 }
+      );
+    }
+    
     const { id } = await params;
     const { user_id } = await request.json();
     const complaintId = parseInt(id);
@@ -31,7 +41,6 @@ export async function POST(
       );
     }
     
-    const session = await requireAdmin();
     const oldStatus = complaint.status;
     
     // Assign complaint with status history and notification in a transaction
@@ -49,7 +58,7 @@ export async function POST(
   } catch (error: any) {
     console.error('Assign complaint error:', error);
     return NextResponse.json(
-      { error: error.message || 'حدث خطأ' },
+      { error: 'حدث خطأ' },
       { status: 500 }
     );
   }

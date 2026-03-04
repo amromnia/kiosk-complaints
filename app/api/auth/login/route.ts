@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { authenticateUser, setSession } from '@/lib/auth/session';
 import { getRateLimiter } from '@/lib/rate-limit';
+import { logAuthAttempt } from '@/lib/utils/security-logger';
 
 export async function POST(request: NextRequest) {
   try {
@@ -17,12 +18,13 @@ export async function POST(request: NextRequest) {
     
     if (!user) {
       // Record auth failure for progressive delays
-      const forwarded = request.headers.get('x-forwarded-for');
-      const ip = forwarded ? forwarded.split(',')[0].trim() : 'unknown';
-      const identifier = `ip:${ip}`;
+      const identifier = `email:${email}`;
       
       const rateLimiter = getRateLimiter();
       await rateLimiter.recordAuthFailure(identifier);
+      
+      // SECURITY: Log failed login attempt
+      logAuthAttempt(email, false, request);
       
       return NextResponse.json(
         { error: 'بيانات الدخول غير صحيحة' },
@@ -31,6 +33,9 @@ export async function POST(request: NextRequest) {
     }
     
     await setSession(user);
+    
+    // SECURITY: Log successful login
+    logAuthAttempt(email, true, request, user.id, user.role);
     
     return NextResponse.json({ 
       success: true,

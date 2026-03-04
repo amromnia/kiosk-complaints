@@ -43,10 +43,10 @@ export async function GET(
       comments,
       history
     });
-  } catch (error: any) {
+  } catch (error) {
     console.error('Get complaint error:', error);
     return NextResponse.json(
-      { error: error.message || 'حدث خطأ' },
+      { error: 'حدث خطأ' },
       { status: 500 }
     );
   }

@@ -15,9 +15,9 @@ export async function GET(
     const { id } = await params;
     const comments = getComplaintComments(parseInt(id));
     return NextResponse.json({ comments });
-  } catch (error: any) {
+  } catch (error) {
     console.error('Get comments error:', error);
-    return NextResponse.json({ error: error.message || 'حدث خطأ' }, { status: 500 });
+    return NextResponse.json({ error: 'حدث خطأ' }, { status: 500 });
   }
 }
 
@@ -68,10 +68,10 @@ export async function POST(
       success: true,
       message: 'تم إضافة التعليق بنجاح'
     });
-  } catch (error: any) {
+  } catch (error) {
     console.error('Add comment error:', error);
     return NextResponse.json(
-      { error: error.message || 'حدث خطأ' },
+      { error: 'حدث خطأ' },
       { status: 500 }
     );
   }

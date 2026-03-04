@@ -43,7 +43,7 @@ export async function GET(request: NextRequest) {
   } catch (error: any) {
     console.error('Get complaints error:', error);
     return NextResponse.json(
-      { error: error.message || 'حدث خطأ' },
+      { error: 'حدث خطأ' },
       { status: 500 }
     );
   }

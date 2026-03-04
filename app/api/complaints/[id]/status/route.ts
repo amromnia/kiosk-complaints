@@ -5,6 +5,7 @@ import {
   updateComplaintStatusWithHistory
 } from '@/lib/db/queries';
 import { isValidStatusTransition, getStatusTransitionError } from '@/lib/utils/status-workflow';
+import { validateCSRF } from '@/lib/utils/csrf';
 
 export async function PUT(
   request: NextRequest,
@@ -12,6 +13,15 @@ export async function PUT(
 ) {
   try {
     const session = await requireAuth();
+    
+    // SECURITY: Validate CSRF
+    if (!validateCSRF(request, session.id)) {
+      return NextResponse.json(
+        { error: 'طلب غير صالح' },
+        { status: 403 }
+      );
+    }
+    
     const { id } = await params;
     const { status, description } = await request.json();
     const complaintId = parseInt(id);
@@ -67,7 +77,7 @@ export async function PUT(
   } catch (error: any) {
     console.error('Update status error:', error);
     return NextResponse.json(
-      { error: error.message || 'حدث خطأ' },
+      { error: 'حدث خطأ' },
       { status: 500 }
     );
   }

@@ -18,10 +18,10 @@ export async function GET(request: NextRequest) {
     
     const result = getUsersPaginated(filters);
     return NextResponse.json(result);
-  } catch (error: any) {
+  } catch (error) {
     console.error('Get users error:', error);
     return NextResponse.json(
-      { error: error.message || 'حدث خطأ' },
+      { error: 'حدث خطأ' },
       { status: 500 }
     );
   }
