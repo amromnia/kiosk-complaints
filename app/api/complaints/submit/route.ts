@@ -4,7 +4,8 @@ import {
   getKioskByLink,
   getComplaintTypeById,
   getAutoAssignmentRules,
-  getActiveUsers
+  getActiveUsers,
+  getActiveAdmins
 } from '@/lib/db/queries';
 import { 
   validatePhoneNumber, 
@@ -99,9 +100,10 @@ export async function POST(request: NextRequest) {
     // Get priority from complaint type
     const priority = getPriorityFromType(complaintType.priority);
     
-    // Get auto-assignment rules and active users if needed
+    // Get auto-assignment rules and active users/admins
     const autoAssignmentRules = complaintType.auto_assignment_enabled ? getAutoAssignmentRules(complaint_type_id) : undefined;
-    const activeUsers = !complaintType.auto_assignment_enabled ? getActiveUsers() : undefined;
+    const activeUsers = getActiveUsers();
+    const activeAdmins = getActiveAdmins();
     
     // Create complaint with attachments and auto-assignment in a transaction
     const complaintId = submitComplaintWithAttachments({
@@ -115,7 +117,8 @@ export async function POST(request: NextRequest) {
       attachments,
       complaintType,
       autoAssignmentRules,
-      activeUsers
+      activeUsers,
+      activeAdmins
     });
     
     return NextResponse.json({

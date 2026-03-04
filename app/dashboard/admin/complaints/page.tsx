@@ -12,9 +12,22 @@ export default function AdminComplaintsPage() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(true);
-  const [filters, setFilters] = useState({ status: '', priority: '', search: '' });
+  const [filters, setFilters] = useState({ status: '', priority: '', kiosk_id: '', search: '' });
+  const [kiosks, setKiosks] = useState<any[]>([]);
+
+  useEffect(() => { 
+    fetchKiosks();
+  }, []);
 
   useEffect(() => { fetchComplaints(); }, [page, filters]);
+
+  const fetchKiosks = async () => {
+    try {
+      const res = await fetch('/api/kiosks?pageSize=100');
+      const result = await res.json();
+      setKiosks(result.kiosks || []);
+    } catch (err) { console.error(err); }
+  };
 
   const fetchComplaints = async () => {
     setLoading(true);
@@ -24,6 +37,7 @@ export default function AdminComplaintsPage() {
       params.append('pageSize', '20');
       if (filters.status) params.append('status', filters.status);
       if (filters.priority) params.append('priority', filters.priority);
+      if (filters.kiosk_id) params.append('kiosk_id', filters.kiosk_id);
       if (filters.search) params.append('search', filters.search);
       
       const res = await fetch(`/api/complaints?${params}`);
@@ -80,7 +94,7 @@ export default function AdminComplaintsPage() {
       {/* Filters */}
       <div className="card mb-6">
         <h3 className="text-base font-bold mb-3" style={{ color: 'var(--color-navy)' }}>تصفية النتائج</h3>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
           <div>
             <label className="form-label">الحالة</label>
             <select className="form-input" value={filters.status} onChange={e => { setFilters({ ...filters, status: e.target.value }); setPage(1); }}>
@@ -93,6 +107,13 @@ export default function AdminComplaintsPage() {
             <select className="form-input" value={filters.priority} onChange={e => { setFilters({ ...filters, priority: e.target.value }); setPage(1); }}>
               <option value="">الكل</option>
               {Object.entries(PRIORITY_LABELS_AR).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="form-label">الماكينة</label>
+            <select className="form-input" value={filters.kiosk_id} onChange={e => { setFilters({ ...filters, kiosk_id: e.target.value }); setPage(1); }}>
+              <option value="">الكل</option>
+              {kiosks.map(k => <option key={k.id} value={k.id}>{k.location}</option>)}
             </select>
           </div>
           <div>

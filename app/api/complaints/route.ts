@@ -16,6 +16,7 @@ export async function GET(request: NextRequest) {
       priority: searchParams.get('priority') || undefined,
       assigned_user_id: searchParams.get('assigned_user_id') ? parseInt(searchParams.get('assigned_user_id')!) : undefined,
       complaint_type_id: searchParams.get('complaint_type_id') ? parseInt(searchParams.get('complaint_type_id')!) : undefined,
+      kiosk_id: searchParams.get('kiosk_id') ? parseInt(searchParams.get('kiosk_id')!) : undefined,
       date_from: searchParams.get('date_from') || undefined,
       date_to: searchParams.get('date_to') || undefined,
       search: searchParams.get('search') || undefined,

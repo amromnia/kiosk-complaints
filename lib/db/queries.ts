@@ -7,6 +7,7 @@ const stmtGetUserByEmail = db.prepare('SELECT * FROM users WHERE email = ?');
 const stmtGetUserById = db.prepare('SELECT * FROM users WHERE id = ?');
 const stmtGetAllUsers = db.prepare('SELECT id, name, email, role, status, created_at FROM users');
 const stmtGetActiveUsers = db.prepare('SELECT id, name, email, role, status FROM users WHERE status = ? AND role = ?');
+const stmtGetActiveAdmins = db.prepare('SELECT id, name, email, role, status FROM users WHERE status = ? AND (role = ? OR role = ?)');
 const stmtCreateUser = db.prepare('INSERT INTO users (name, email, password, role, status) VALUES (?, ?, ?, ?, ?)');
 const stmtUpdateUserStatus = db.prepare('UPDATE users SET status = ? WHERE id = ?');
 
@@ -158,6 +159,10 @@ export const getAllUsers = () => {
 
 export const getActiveUsers = () => {
   return stmtGetActiveUsers.all('active', 'user');
+};
+
+export const getActiveAdmins = () => {
+  return stmtGetActiveAdmins.all('active', 'admin', 'superadmin');
 };
 
 export const createUser = (name: string, email: string, password: string, role: string) => {
@@ -510,6 +515,7 @@ export const getComplaintsPaginated = (filters?: {
   priority?: string;
   assigned_user_id?: number;
   complaint_type_id?: number;
+  kiosk_id?: number;
   date_from?: string;
   date_to?: string;
   search?: string;
@@ -529,6 +535,9 @@ export const getComplaintsPaginated = (filters?: {
     }
     if (filters.complaint_type_id !== undefined && typeof filters.complaint_type_id !== 'number') {
       throw new Error('Invalid complaint_type_id');
+    }
+    if (filters.kiosk_id !== undefined && typeof filters.kiosk_id !== 'number') {
+      throw new Error('Invalid kiosk_id');
     }
     if (filters.search !== undefined && (typeof filters.search !== 'string' || filters.search.length > 200)) {
       throw new Error('Invalid search query');
@@ -588,6 +597,12 @@ export const getComplaintsPaginated = (filters?: {
     query += ' AND c.complaint_type_id = ?';
     countQuery += ' AND c.complaint_type_id = ?';
     params.push(filters.complaint_type_id);
+  }
+
+  if (filters?.kiosk_id) {
+    query += ' AND c.kiosk_id = ?';
+    countQuery += ' AND c.kiosk_id = ?';
+    params.push(filters.kiosk_id);
   }
 
   if (filters?.date_from) {
@@ -750,6 +765,7 @@ export const submitComplaintWithAttachments = (data: {
   complaintType: any;
   autoAssignmentRules?: any[];
   activeUsers?: any[];
+  activeAdmins?: any[];
 }) => {
   const transaction = db.transaction(() => {
     // Create complaint
@@ -808,9 +824,8 @@ export const submitComplaintWithAttachments = (data: {
     }
     
     // Send notification to all admins
-    if (data.activeUsers) {
-      const admins = data.activeUsers.filter((u: any) => u.role === 'admin');
-      for (const admin of admins) {
+    if (data.activeAdmins) {
+      for (const admin of data.activeAdmins) {
         stmtCreateNotification.run(
           admin.id,
           complaintId,
