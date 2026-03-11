@@ -68,6 +68,7 @@ export const initDatabase = () => {
   db.exec(`
     CREATE TABLE IF NOT EXISTS complaints (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
+      reference_number TEXT UNIQUE NOT NULL,
       client_phone TEXT NOT NULL,
       client_national_id TEXT NOT NULL,
       client_name TEXT NOT NULL,
@@ -222,6 +223,7 @@ export const initDatabase = () => {
   db.exec(`CREATE INDEX IF NOT EXISTS idx_complaints_status_assigned_created ON complaints(status, assigned_user_id, created_at DESC)`);
   
   // Search indexes for complaints
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_complaints_reference_number ON complaints(reference_number)`);
   db.exec(`CREATE INDEX IF NOT EXISTS idx_complaints_client_phone ON complaints(client_phone)`);
   db.exec(`CREATE INDEX IF NOT EXISTS idx_complaints_client_national_id ON complaints(client_national_id)`);
   

@@ -1,4 +1,5 @@
 import db from '../lib/db/schema';
+import { generateReferenceNumber } from '../lib/utils/constants';
 
 // Helper function to get random element from array
 function randomItem<T>(arr: T[]): T {
@@ -49,6 +50,7 @@ async function seedComplaints() {
 
     const stmt = db.prepare(`
       INSERT INTO complaints (
+        reference_number,
         client_phone, 
         client_national_id, 
         client_name, 
@@ -60,12 +62,29 @@ async function seedComplaints() {
         assigned_user_id,
         created_at,
         closed_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
+    
+    const checkRefStmt = db.prepare('SELECT COUNT(*) as count FROM complaints WHERE reference_number = ?');
 
     let count = 0;
 
     for (let i = 0; i < 50; i++) {
+      // Generate unique reference number
+      let referenceNumber: string;
+      let attempts = 0;
+      do {
+        referenceNumber = generateReferenceNumber();
+        const result = checkRefStmt.get(referenceNumber) as { count: number };
+        if (result.count === 0) break;
+        attempts++;
+      } while (attempts < 10);
+      
+      if (attempts >= 10) {
+        console.error('❌ Failed to generate unique reference number');
+        continue;
+      }
+      
       // Generate random data
       const firstName = randomItem(firstNames);
       const lastName = randomItem(lastNames);
@@ -92,6 +111,7 @@ async function seedComplaints() {
         : null;
 
       stmt.run(
+        referenceNumber,
         clientPhone,
         clientNationalId,
         clientName,

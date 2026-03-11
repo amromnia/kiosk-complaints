@@ -48,7 +48,8 @@ export async function POST(
       complaintId,
       userId: user_id,
       adminId: session.id,
-      oldStatus
+      oldStatus,
+      complaint
     });
     
     return NextResponse.json({ 

@@ -1,4 +1,5 @@
 import db from './schema';
+import { generateReferenceNumber } from '@/lib/utils/constants';
 
 // ==================== PREPARED STATEMENTS (Hoisted for Reuse) ====================
 
@@ -13,8 +14,8 @@ const stmtUpdateUserStatus = db.prepare('UPDATE users SET status = ? WHERE id = 
 
 // Complaint statements
 const stmtCreateComplaint = db.prepare(`
-  INSERT INTO complaints (client_phone, client_national_id, client_name, complaint_type_id, description, kiosk_id, priority)
-  VALUES (?, ?, ?, ?, ?, ?, ?)
+  INSERT INTO complaints (reference_number, client_phone, client_national_id, client_name, complaint_type_id, description, kiosk_id, priority)
+  VALUES (?, ?, ?, ?, ?, ?, ?, ?)
 `);
 const stmtGetComplaintById = db.prepare(`
   SELECT 
@@ -28,6 +29,19 @@ const stmtGetComplaintById = db.prepare(`
   LEFT JOIN users u ON c.assigned_user_id = u.id
   WHERE c.id = ?
 `);
+const stmtGetComplaintByReferenceNumber = db.prepare(`
+  SELECT 
+    c.*,
+    ct.name_ar as type_name,
+    k.location as kiosk_location,
+    u.name as assigned_user_name
+  FROM complaints c
+  LEFT JOIN complaint_types ct ON c.complaint_type_id = ct.id
+  LEFT JOIN kiosks k ON c.kiosk_id = k.id
+  LEFT JOIN users u ON c.assigned_user_id = u.id
+  WHERE c.reference_number = ?
+`);
+const stmtCheckReferenceNumberExists = db.prepare('SELECT COUNT(*) as count FROM complaints WHERE reference_number = ?');
 const stmtAssignComplaint = db.prepare('UPDATE complaints SET assigned_user_id = ?, status = ? WHERE id = ?');
 const stmtUpdateComplaintStatus = db.prepare('UPDATE complaints SET status = ? WHERE id = ?');
 const stmtCloseComplaint = db.prepare('UPDATE complaints SET status = ?, closed_at = CURRENT_TIMESTAMP, is_satisfied = ? WHERE id = ?');
@@ -197,6 +211,15 @@ export const createComplaint = (data: {
 
 export const getComplaintById = (id: number) => {
   return stmtGetComplaintById.get(id);
+};
+
+export const getComplaintByReferenceNumber = (referenceNumber: string) => {
+  return stmtGetComplaintByReferenceNumber.get(referenceNumber);
+};
+
+export const checkReferenceNumberExists = (referenceNumber: string): boolean => {
+  const result = stmtCheckReferenceNumberExists.get(referenceNumber) as { count: number };
+  return result.count > 0;
 };
 
 export const getAllComplaints = (filters?: {
@@ -768,8 +791,12 @@ export const submitComplaintWithAttachments = (data: {
   activeAdmins?: any[];
 }) => {
   const transaction = db.transaction(() => {
+    // Generate unique reference number (UUID - no collision checking needed)
+    const referenceNumber = generateReferenceNumber();
+
     // Create complaint
     const complaintResult = stmtCreateComplaint.run(
+      referenceNumber,
       data.client_phone,
       data.client_national_id,
       data.client_name,
@@ -818,7 +845,7 @@ export const submitComplaintWithAttachments = (data: {
           assignedUserId,
           complaintId,
           'assignment',
-          `تم تكليفك بشكوى جديدة رقم #${complaintId}`
+          `تم تكليفك بشكوى جديدة رقم #${referenceNumber}`
         );
       }
     }
@@ -830,12 +857,12 @@ export const submitComplaintWithAttachments = (data: {
           admin.id,
           complaintId,
           'new_complaint',
-          `شكوى جديدة رقم #${complaintId}${assignedUserId ? ' تم تكليفها تلقائياً' : ' بحاجة إلى مراجعة'}`
+          `شكوى جديدة رقم #${referenceNumber}${assignedUserId ? ' تم تكليفها تلقائياً' : ' بحاجة إلى مراجعة'}`
         );
       }
     }
 
-    return complaintId;
+    return { complaintId, referenceNumber };
   });
 
   return transaction();
@@ -865,7 +892,7 @@ export const updateComplaintStatusWithHistory = (data: {
         data.complaint.assigned_user_id,
         data.complaintId,
         'status_change',
-        `تم تغيير حالة الشكوى #${data.complaintId} إلى ${data.newStatus}`
+        `تم تغيير حالة الشكوى #${data.complaint.reference_number} إلى ${data.newStatus}`
       );
     }
   });
@@ -881,6 +908,7 @@ export const assignComplaintWithNotification = (data: {
   userId: number;
   adminId: number;
   oldStatus: string;
+  complaint: any;
 }) => {
   const transaction = db.transaction(() => {
     // Assign complaint (also updates status to 'assigned')
@@ -902,7 +930,7 @@ export const assignComplaintWithNotification = (data: {
       data.userId,
       data.complaintId,
       'assignment',
-      `تم تكليفك بالشكوى #${data.complaintId}`
+      `تم تكليفك بالشكوى #${data.complaint.reference_number}`
     );
   });
 
@@ -929,7 +957,7 @@ export const createCommentWithNotification = (data: {
         data.complaint.assigned_user_id,
         data.complaintId,
         'comment',
-        `تعليق جديد على الشكوى #${data.complaintId}`
+        `تعليق جديد على الشكوى #${data.complaint.reference_number}`
       );
     }
   });

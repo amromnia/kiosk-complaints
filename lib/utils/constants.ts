@@ -80,3 +80,22 @@ export function calculateTimeElapsed(startDate: string | Date): string {
     return `${diffMins} دقيقة`;
   }
 }
+
+/**
+ * Generate a unique, non-sequential reference number for complaints using UUID
+ * This prevents enumeration attacks by using cryptographically random identifiers
+ * Format: Standard UUID v4 (e.g., 550e8400-e29b-41d4-a716-446655440000)
+ */
+export function generateReferenceNumber(): string {
+  // Generate UUID v4 using crypto.randomUUID() if available (Node 16+)
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+    return crypto.randomUUID();
+  }
+  
+  // Fallback: Generate UUID v4 manually
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    const r = Math.random() * 16 | 0;
+    const v = c === 'x' ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  });
+}

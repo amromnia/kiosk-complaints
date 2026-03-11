@@ -11,9 +11,26 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    await requireAuth();
+    const session = await requireAuth();
     const { id } = await params;
-    const comments = getComplaintComments(parseInt(id));
+    const complaintId = parseInt(id);
+
+    const complaint: any = getComplaintById(complaintId);
+    if (!complaint) {
+      return NextResponse.json({ error: 'الشكوى غير موجودة' }, { status: 404 });
+    }
+
+    // Users can only access comments on their assigned complaints
+    if (session.role === 'user' && complaint.assigned_user_id !== session.id) {
+      return NextResponse.json({ error: 'غير مصرح لك' }, { status: 403 });
+    }
+
+    const allComments = getComplaintComments(complaintId);
+    // Strip internal comments from user role responses
+    const comments = session.role === 'user'
+      ? allComments.filter((c: any) => !c.is_internal)
+      : allComments;
+
     return NextResponse.json({ comments });
   } catch (error) {
     console.error('Get comments error:', error);
