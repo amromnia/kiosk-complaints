@@ -117,7 +117,7 @@ export default function AdminComplaintDetailPage() {
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 12H5M12 19l7-7-7-7"/></svg>
           </button>
           <div>
-            <h1>شكوى #{complaint.id}</h1>
+            <h1>شكوى #{complaint.reference_number}</h1>
             <p className="text-sm" style={{ color: 'var(--color-text-muted)' }}>
               {complaint.type_name} — {complaint.kiosk_location}
             </p>

@@ -24,7 +24,7 @@ export default function ComplaintCard({ complaint, onClick }: ComplaintCardProps
       <div className="flex items-start justify-between gap-2 mb-4">
         <div className="min-w-0">
           <p className="text-lg font-bold" style={{ color: '#1b2a4a' }}>
-            شكوى #{complaint.id}
+            شكوى #{complaint.reference_number}
           </p>
           <p className="text-xs mt-0.5" style={{ color: '#94a3b8' }}>{complaint.type_name}</p>
         </div>

@@ -22,7 +22,7 @@ export default function ComplaintPage() {
   const [kioskNotFound, setKioskNotFound] = useState(false);
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
-  const [complaintId, setComplaintId] = useState<number | null>(null);
+  const [referenceNumber, setReferenceNumber] = useState<string | null>(null);
   const [error, setError] = useState('');
   const [complaintTypes, setComplaintTypes] = useState<ComplaintType[]>([]);
   const [formData, setFormData] = useState({
@@ -114,7 +114,7 @@ export default function ComplaintPage() {
       const data = await res.json();
       if (data.success) {
         setSubmitted(true);
-        setComplaintId(data.complaint_id);
+        setReferenceNumber(data.reference_number);
       } else {
         setError(data.error || 'حدث خطأ أثناء تسجيل الشكوى');
       }
@@ -179,7 +179,7 @@ export default function ComplaintPage() {
               <h1 className="text-3xl font-bold mb-3" style={{ color: '#065f46' }}>تم تسجيل الشكوى بنجاح!</h1>
               <div className="mb-6 p-4 rounded-lg" style={{ background: '#f0fdf4', border: '2px solid #86efac' }}>
                 <p className="text-sm mb-2" style={{ color: '#166534' }}>رقم الشكوى</p>
-                <p className="text-4xl font-bold" style={{ color: '#065f46' }}>#{complaintId}</p>
+                <p className="text-2xl font-bold" style={{ color: '#065f46', wordBreak: 'break-all' }}>#{referenceNumber}</p>
               </div>
               <p className="text-base mb-8" style={{ color: 'var(--color-text-secondary)', lineHeight: '1.7' }}>
                 سيتم التواصل معكم قريباً لحل المشكلة.<br/>
@@ -190,7 +190,7 @@ export default function ComplaintPage() {
                   setSubmitted(false); 
                   setFormData({ client_phone: '', client_national_id: '', client_name: '', complaint_type_id: '', description: '' }); 
                   setFiles([]); 
-                  setComplaintId(null); 
+                  setReferenceNumber(null); 
                 }}
                 className="btn btn-primary btn-lg"
               >

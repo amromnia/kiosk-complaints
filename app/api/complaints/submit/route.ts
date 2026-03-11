@@ -106,7 +106,7 @@ export async function POST(request: NextRequest) {
     const activeAdmins = getActiveAdmins();
     
     // Create complaint with attachments and auto-assignment in a transaction
-    const complaintId = submitComplaintWithAttachments({
+    const result = submitComplaintWithAttachments({
       client_phone,
       client_national_id,
       client_name: sanitizedName,
@@ -123,7 +123,7 @@ export async function POST(request: NextRequest) {
     
     return NextResponse.json({
       success: true,
-      complaint_id: complaintId,
+      reference_number: result.referenceNumber,
       message: 'تم تسجيل الشكوى بنجاح'
     });
   } catch (error) {
