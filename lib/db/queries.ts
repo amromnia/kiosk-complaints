@@ -222,6 +222,16 @@ export const checkReferenceNumberExists = (referenceNumber: string): boolean => 
   return result.count > 0;
 };
 
+export const getComplaintsStats = () => {
+  const rows = db.prepare(`
+    SELECT status, COUNT(*) as count FROM complaints GROUP BY status
+  `).all() as { status: string; count: number }[];
+  const total = (db.prepare('SELECT COUNT(*) as count FROM complaints').get() as { count: number }).count;
+  const byStatus: Record<string, number> = {};
+  for (const row of rows) byStatus[row.status] = row.count;
+  return { total, byStatus };
+};
+
 export const getAllComplaints = (filters?: {
   status?: string;
   assigned_user_id?: number;

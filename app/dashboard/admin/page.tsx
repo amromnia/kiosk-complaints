@@ -16,7 +16,7 @@ export default function AdminDashboard() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [complaints, setComplaints] = useState<any[]>([]);
-  const [allComplaints, setAllComplaints] = useState<any[]>([]);
+  const [stats, setStats] = useState({ total: 0, byStatus: {} as Record<string, number> });
   const [filters, setFilters] = useState({ status: '', priority: '', search: '' });
 
   useEffect(() => { fetchStats(); }, []);
@@ -24,9 +24,9 @@ export default function AdminDashboard() {
 
   const fetchStats = async () => {
     try {
-      const res = await fetch('/api/complaints?pageSize=1000');
+      const res = await fetch('/api/complaints/stats');
       const data = await res.json();
-      setAllComplaints(data.complaints || []);
+      setStats(data);
     } catch (err) { console.error(err); }
   };
 
@@ -46,19 +46,12 @@ export default function AdminDashboard() {
     finally { setLoading(false); }
   };
 
-  const stats = {
-    total: allComplaints.length,
-    new: allComplaints.filter(c => c.status === 'new').length,
-    assigned: allComplaints.filter(c => c.status === 'assigned').length,
-    in_progress: allComplaints.filter(c => c.status === 'in_progress').length,
-    closed: allComplaints.filter(c => c.status === 'closed').length,
-  };
   const statItems = [
     { label: 'إجمالي الشكاوى', value: stats.total },
-    { label: 'جديدة', value: stats.new },
-    { label: 'معينة', value: stats.assigned },
-    { label: 'قيد المعالجة', value: stats.in_progress },
-    { label: 'مغلقة', value: stats.closed },
+    { label: 'جديدة', value: stats.byStatus['new'] || 0 },
+    { label: 'معينة', value: stats.byStatus['assigned'] || 0 },
+    { label: 'قيد المعالجة', value: stats.byStatus['in_progress'] || 0 },
+    { label: 'مغلقة', value: stats.byStatus['closed'] || 0 },
   ];
 
   return (
