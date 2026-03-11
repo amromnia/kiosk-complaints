@@ -68,21 +68,38 @@ export default function ComplaintPage() {
     } catch (err) { console.error('Error fetching complaint types:', err); }
   };
 
+  const ALLOWED_EXTENSIONS = ['jpg', 'jpeg', 'png', 'webp'];
+  const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) setFiles(Array.from(e.target.files));
+    if (!e.target.files) return;
+    const selected = Array.from(e.target.files);
+    const invalid = selected.filter(f => {
+      const ext = f.name.split('.').pop()?.toLowerCase() ?? '';
+      return !ALLOWED_EXTENSIONS.includes(ext) || !ALLOWED_MIME_TYPES.includes(f.type);
+    });
+    if (invalid.length > 0) {
+      setError(`الملفات التالية غير مسموح بها: ${invalid.map(f => f.name).join('، ')}. يُسمح فقط بـ JPG و PNG و WEBP.`);
+      e.target.value = '';
+      setFiles([]);
+      return;
+    }
+    setError('');
+    setFiles(selected);
   };
 
-  const uploadFiles = async () => {
+  const uploadFiles = async (): Promise<Array<{ path: string; type: string; filename: string }>> => {
     const uploaded = [];
     for (const file of files) {
       const fd = new FormData();
       fd.append('file', file);
       fd.append('uploadedBy', 'client');
-      try {
-        const res = await fetch('/api/upload', { method: 'POST', body: fd });
-        const data = await res.json();
-        if (data.success) uploaded.push({ path: data.path, type: data.type, filename: data.filename });
-      } catch (err) { console.error('Upload error:', err); }
+      const res = await fetch('/api/upload', { method: 'POST', body: fd });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || `فشل رفع الملف: ${file.name}`);
+      }
+      uploaded.push({ path: data.path, type: data.type, filename: data.filename });
     }
     return uploaded;
   };
@@ -104,7 +121,15 @@ export default function ComplaintPage() {
         return;
       }
       let attachments: any[] = [];
-      if (files.length > 0) attachments = await uploadFiles();
+      if (files.length > 0) {
+        try {
+          attachments = await uploadFiles();
+        } catch (uploadErr: any) {
+          setError(uploadErr.message || 'حدث خطأ أثناء رفع الملفات');
+          setLoading(false);
+          return;
+        }
+      }
 
       const res = await fetch('/api/complaints/submit', {
         method: 'POST',
@@ -235,7 +260,7 @@ export default function ComplaintPage() {
                 <div>
                   <label className="form-label">رقم الهاتف *</label>
                   <input type="tel" className="form-input" placeholder="01xxxxxxxxx" value={formData.client_phone}
-                    onChange={(e) => setFormData({ ...formData, client_phone: e.target.value })} required pattern="01[0-2,5][0-9]{8}" maxLength={11} />
+                    onChange={(e) => setFormData({ ...formData, client_phone: e.target.value })} required pattern="01[0-2,5][0-9]{8}" maxLength={11} dir="rtl" />
                   <p className="text-xs mt-1" style={{ color: '#94a3b8' }}>رقم مكون من 11 رقم</p>
                 </div>
                 <div>
