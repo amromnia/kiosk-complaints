@@ -201,7 +201,7 @@ export default function AdminUsersPage() {
     const canToggle = currentUser?.role === 'superadmin' || 
       (currentUser?.role === 'admin' && item.role === 'user');
     const canResetPassword = currentUser?.role === 'superadmin' ||
-      (currentUser?.role === 'admin' && item.role !== 'superadmin');
+      (currentUser?.role === 'admin' && item.role === 'user');
     
     return (
       <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', flexWrap: 'wrap' }}>
