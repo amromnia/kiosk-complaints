@@ -34,14 +34,20 @@ export async function GET(
     }
     
     const attachments = getComplaintAttachments(complaintId);
-    const comments = getComplaintComments(complaintId);
+    const allComments = getComplaintComments(complaintId);
     const history = getComplaintStatusHistory(complaintId);
-    
+
+    // Users must not receive status history or internal comments
+    const isUser = session.role === 'user';
+    const comments = isUser
+      ? allComments.filter((c: any) => !c.is_internal)
+      : allComments;
+
     return NextResponse.json({
       complaint,
       attachments,
       comments,
-      history
+      ...(isUser ? {} : { history })
     });
   } catch (error) {
     console.error('Get complaint error:', error);
