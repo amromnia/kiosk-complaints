@@ -15,35 +15,38 @@ export default function UserDashboard() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [complaints, setComplaints] = useState<any[]>([]);
-  const [filteredComplaints, setFilteredComplaints] = useState<any[]>([]);
-  const [filters, setFilters] = useState({ status: '', search: '' });
+  const [stats, setStats] = useState({ activeTotal: 0, byStatus: {} as Record<string, number> });
+  const [filters, setFilters] = useState({ status: 'open', search: '' });
 
-  useEffect(() => { fetchComplaints(); }, []);
-  useEffect(() => { applyFilters(); }, [complaints, filters]);
+  useEffect(() => { fetchStats(); }, []);
+  useEffect(() => { fetchComplaints(); }, [filters]);
+
+  const fetchStats = async () => {
+    try {
+      const res = await fetch('/api/complaints/stats');
+      const data = await res.json();
+      setStats(data);
+    } catch (err) { console.error(err); }
+  };
 
   const fetchComplaints = async () => {
-    try { const res = await fetch('/api/complaints'); const data = await res.json(); setComplaints(data.complaints || []); }
-    catch (err) { console.error(err); } finally { setLoading(false); }
+    setLoading(true);
+    try {
+      const params = new URLSearchParams();
+      if (filters.status) params.append('status', filters.status);
+      if (filters.search) params.append('search', filters.search);
+      const res = await fetch(`/api/complaints?${params}`);
+      const data = await res.json();
+      setComplaints(data.complaints || []);
+    } catch (err) { console.error(err); }
+    finally { setLoading(false); }
   };
 
-  const applyFilters = () => {
-    let filtered = [...complaints];
-    if (filters.status) filtered = filtered.filter(c => c.status === filters.status);
-    if (filters.search) { const s = filters.search.toLowerCase(); filtered = filtered.filter(c => c.client_name?.toLowerCase().includes(s) || c.client_phone?.includes(s) || c.id?.toString().includes(s)); }
-    setFilteredComplaints(filtered);
-  };
-
-  const stats = {
-    total: complaints.length,
-    in_progress: complaints.filter(c => c.status === 'in_progress').length,
-    resolved: complaints.filter(c => c.status === 'resolved').length,
-    closed: complaints.filter(c => c.status === 'closed').length,
-  };
   const statItems = [
-    { label: 'إجمالي المكلف بها', value: stats.total },
-    { label: 'قيد المعالجة', value: stats.in_progress },
-    { label: 'محلولة', value: stats.resolved },
-    { label: 'مغلقة', value: stats.closed },
+    { label: 'إجمالي المكلف بها', value: stats.activeTotal },
+    { label: 'قيد المعالجة', value: stats.byStatus['in_progress'] || 0 },
+    { label: 'محلولة', value: stats.byStatus['resolved'] || 0 },
+    { label: 'مغلقة', value: stats.byStatus['closed'] || 0 },
   ];
 
   return (
@@ -71,8 +74,10 @@ export default function UserDashboard() {
             <label className="form-label">الحالة</label>
             <select className="form-input" value={filters.status} onChange={e => setFilters({...filters, status: e.target.value})}>
               <option value="">الكل</option>
+              <option value="open">مفتوحة</option>
               <option value="assigned">معينة</option>
               <option value="in_progress">قيد المعالجة</option>
+              <option value="reopened">معادة الفتح</option>
               <option value="resolved">محلولة</option>
               <option value="closed">مغلقة</option>
             </select>
@@ -86,14 +91,14 @@ export default function UserDashboard() {
 
       {loading ? (
         <div className="empty-state"><div className="spinner spinner-dark spinner-lg"></div></div>
-      ) : filteredComplaints.length === 0 ? (
+      ) : complaints.length === 0 ? (
         <div className="empty-state">
           <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
           <p>لا توجد شكاوى مكلف بها حالياً</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-          {filteredComplaints.map(complaint => (
+          {complaints.map(complaint => (
             <ComplaintCard key={complaint.id} complaint={complaint} onClick={() => router.push(`/dashboard/user/complaints/${complaint.id}`)} />
           ))}
         </div>

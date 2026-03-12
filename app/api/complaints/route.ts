@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth/session';
 import { 
   getAllComplaints, 
-  getUserComplaints,
   getComplaintsPaginated
 } from '@/lib/db/queries';
 
@@ -29,15 +28,8 @@ export async function GET(request: NextRequest) {
     if (session.role === 'admin' || session.role === 'superadmin') {
       result = getComplaintsPaginated(filters);
     } else {
-      // Users can only see their assigned complaints
-      const complaints = getUserComplaints(session.id);
-      result = {
-        complaints,
-        total: complaints.length,
-        page: 1,
-        pageSize: complaints.length,
-        totalPages: 1,
-      };
+      // Users can only see their own assigned complaints; scope by user id
+      result = getComplaintsPaginated({ ...filters, assigned_user_id: session.id });
     }
     
     return NextResponse.json(result);

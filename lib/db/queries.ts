@@ -156,6 +156,42 @@ const stmtGetUserStats = db.prepare(`
   FROM complaints
   WHERE assigned_user_id = ?
 `);
+const stmtComplaintsGroupByStatus = db.prepare('SELECT status, COUNT(*) as count FROM complaints GROUP BY status');
+const stmtGetUserComplaints = db.prepare(`
+  SELECT 
+    c.*,
+    ct.name_ar as type_name,
+    k.location as kiosk_location
+  FROM complaints c
+  LEFT JOIN complaint_types ct ON c.complaint_type_id = ct.id
+  LEFT JOIN kiosks k ON c.kiosk_id = k.id
+  WHERE c.assigned_user_id = ?
+  ORDER BY c.created_at ASC
+`);
+const stmtGetUserNotifications = db.prepare(`
+  SELECT n.*, c.id as complaint_number
+  FROM notifications n
+  LEFT JOIN complaints c ON n.complaint_id = c.id
+  WHERE n.user_id = ?
+  ORDER BY n.created_at DESC LIMIT 50
+`);
+const stmtGetUserNotificationsUnread = db.prepare(`
+  SELECT n.*, c.id as complaint_number
+  FROM notifications n
+  LEFT JOIN complaints c ON n.complaint_id = c.id
+  WHERE n.user_id = ? AND n.is_read = 0
+  ORDER BY n.created_at DESC LIMIT 50
+`);
+const stmtDeleteAllUserNotifications = db.prepare('DELETE FROM notifications WHERE user_id = ?');
+const stmtGetUserComplaintsStatsByStatus = db.prepare(`
+  SELECT status, COUNT(*) as count FROM complaints
+  WHERE assigned_user_id = ?
+  GROUP BY status
+`);
+const stmtGetUserActiveComplaintsCount = db.prepare(`
+  SELECT COUNT(*) as count FROM complaints
+  WHERE assigned_user_id = ? AND status NOT IN ('resolved', 'closed')
+`);
 
 // ==================== USER QUERIES ====================
 
@@ -223,10 +259,8 @@ export const checkReferenceNumberExists = (referenceNumber: string): boolean => 
 };
 
 export const getComplaintsStats = () => {
-  const rows = db.prepare(`
-    SELECT status, COUNT(*) as count FROM complaints GROUP BY status
-  `).all() as { status: string; count: number }[];
-  const total = (db.prepare('SELECT COUNT(*) as count FROM complaints').get() as { count: number }).count;
+  const rows = stmtComplaintsGroupByStatus.all() as { status: string; count: number }[];
+  const total = (stmtComplaintStatsTotal.get() as { count: number }).count;
   const byStatus: Record<string, number> = {};
   for (const row of rows) byStatus[row.status] = row.count;
   return { total, byStatus };
@@ -287,17 +321,7 @@ export const getAllComplaints = (filters?: {
 };
 
 export const getUserComplaints = (userId: number) => {
-  return db.prepare(`
-    SELECT 
-      c.*,
-      ct.name_ar as type_name,
-      k.location as kiosk_location
-    FROM complaints c
-    LEFT JOIN complaint_types ct ON c.complaint_type_id = ct.id
-    LEFT JOIN kiosks k ON c.kiosk_id = k.id
-    WHERE c.assigned_user_id = ?
-    ORDER BY c.created_at ASC
-  `).all(userId);
+  return stmtGetUserComplaints.all(userId);
 };
 
 export const assignComplaint = (complaintId: number, userId: number) => {
@@ -444,20 +468,10 @@ export const createNotification = (userId: number, complaintId: number | null, t
 };
 
 export const getUserNotifications = (userId: number, unreadOnly = false) => {
-  let query = `
-    SELECT n.*, c.id as complaint_number
-    FROM notifications n
-    LEFT JOIN complaints c ON n.complaint_id = c.id
-    WHERE n.user_id = ?
-  `;
-  
   if (unreadOnly) {
-    query += ' AND n.is_read = 0';
+    return stmtGetUserNotificationsUnread.all(userId);
   }
-  
-  query += ' ORDER BY n.created_at DESC LIMIT 50';
-  
-  return db.prepare(query).all(userId);
+  return stmtGetUserNotifications.all(userId);
 };
 
 export const deleteNotification = (notificationId: number) => {
@@ -470,7 +484,7 @@ export const getUnreadNotificationCount = (userId: number) => {
 };
 
 export const deleteAllUserNotifications = (userId: number) => {
-  return db.prepare('DELETE FROM notifications WHERE user_id = ?').run(userId);
+  return stmtDeleteAllUserNotifications.run(userId);
 };
 
 // ==================== REGISTRATION LINK QUERIES ====================
@@ -541,6 +555,17 @@ export const getUserStats = (userId: number) => {
   };
 };
 
+export const getUserComplaintsStats = (userId: number) => {
+  const rows = stmtGetUserComplaintsStatsByStatus.all(userId) as { status: string; count: number }[];
+
+  const byStatus: Record<string, number> = {};
+  for (const row of rows) byStatus[row.status] = row.count;
+
+  const activeTotal = stmtGetUserActiveComplaintsCount.get(userId) as { count: number };
+
+  return { activeTotal: activeTotal.count, byStatus };
+};
+
 // ==================== PAGINATION QUERIES ====================
 
 export const getComplaintsPaginated = (filters?: {
@@ -608,7 +633,10 @@ export const getComplaintsPaginated = (filters?: {
 
   const params: any[] = [];
 
-  if (filters?.status) {
+  if (filters?.status === 'open') {
+    query += " AND c.status NOT IN ('resolved', 'closed')";
+    countQuery += " AND c.status NOT IN ('resolved', 'closed')";
+  } else if (filters?.status) {
     query += ' AND c.status = ?';
     countQuery += ' AND c.status = ?';
     params.push(filters.status);
