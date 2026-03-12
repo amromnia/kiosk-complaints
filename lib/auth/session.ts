@@ -60,6 +60,14 @@ export async function requireAuth(): Promise<UserSession> {
   if (!session) {
     throw new Error('Unauthorized');
   }
+
+  // Verify the user is still active in the database.
+  // This ensures deactivated users are blocked immediately on every request,
+  // regardless of whether their JWT has not yet expired.
+  const user: any = getUserById(session.id);
+  if (!user || user.status !== 'active') {
+    throw new Error('Unauthorized');
+  }
   
   return session;
 }

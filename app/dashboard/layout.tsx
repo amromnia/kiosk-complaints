@@ -21,6 +21,25 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     checkAuth();
   }, []);
 
+  // Global 401 interceptor: any API call returning 401 means the session expired
+  // or the user was deactivated. Redirect to login immediately, centrally.
+  // This covers all child pages without any per-page boilerplate.
+  // Note: middleware (proxy.ts) handles invalid/expired JWTs at the edge;
+  // DB-level deactivation is caught here via requireAuth() returning 401.
+  useEffect(() => {
+    const originalFetch = window.fetch;
+    window.fetch = async (...args) => {
+      const response = await originalFetch(...args);
+      if (response.status === 401) {
+        router.push('/login');
+      }
+      return response;
+    };
+    return () => {
+      window.fetch = originalFetch;
+    };
+  }, []);
+
   const checkAuth = async () => {
     try {
       const res = await fetch('/api/auth/session');

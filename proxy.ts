@@ -24,6 +24,20 @@ export async function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
+  // Dashboard auth guard — protect all /dashboard/* pages at the edge.
+  // JWT signature and expiry are verified here; DB-level status checks
+  // (deactivated users) happen in requireAuth() on every API call and via
+  // the /api/auth/session check triggered by the dashboard layout on navigation.
+  if (pathname.startsWith('/dashboard')) {
+    const token = request.cookies.get('session')?.value;
+    const session = token ? await verifyToken(token) : null;
+    if (!session) {
+      const response = NextResponse.redirect(new URL('/login', request.url));
+      response.cookies.delete('session');
+      return response;
+    }
+  }
+
   try {
     const rateLimiter = getRateLimiter();
 

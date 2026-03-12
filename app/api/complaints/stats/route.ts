@@ -15,6 +15,9 @@ export async function GET() {
     const stats = getUserComplaintsStats(session.id);
     return NextResponse.json(stats);
   } catch (error: any) {
+    if (error.message === 'Unauthorized') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     console.error('Get complaints stats error:', error);
     return NextResponse.json({ error: 'حدث خطأ' }, { status: 500 });
   }

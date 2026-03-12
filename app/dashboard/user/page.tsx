@@ -24,6 +24,7 @@ export default function UserDashboard() {
   const fetchStats = async () => {
     try {
       const res = await fetch('/api/complaints/stats');
+      if (!res.ok) return;
       const data = await res.json();
       setStats(data);
     } catch (err) { console.error(err); }
@@ -36,6 +37,7 @@ export default function UserDashboard() {
       if (filters.status) params.append('status', filters.status);
       if (filters.search) params.append('search', filters.search);
       const res = await fetch(`/api/complaints?${params}`);
+      if (!res.ok) return;
       const data = await res.json();
       setComplaints(data.complaints || []);
     } catch (err) { console.error(err); }
