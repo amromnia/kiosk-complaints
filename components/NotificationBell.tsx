@@ -138,7 +138,11 @@ export default function NotificationBell() {
   };
 
   const formatTime = (dateStr: string) => {
-    const date = new Date(dateStr);
+    // SQLite returns YYYY-MM-DD HH:MM:SS (UTC, no timezone suffix).
+    // Normalise to ISO 8601 with Z so new Date() always parses as UTC,
+    // matching new Date() (current time) regardless of client timezone.
+    const normalised = dateStr.includes('Z') || dateStr.includes('+') ? dateStr : dateStr.replace(' ', 'T') + 'Z';
+    const date = new Date(normalised);
     const now = new Date();
     const diffMs = now.getTime() - date.getTime();
     const diffMins = Math.floor(diffMs / 60000);
