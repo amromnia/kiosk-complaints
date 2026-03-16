@@ -47,11 +47,11 @@ export default function AdminDashboard() {
   };
 
   const statItems = [
-    { label: 'إجمالي الشكاوى', value: stats.total },
-    { label: 'جديدة', value: stats.byStatus['new'] || 0 },
-    { label: 'معينة', value: stats.byStatus['assigned'] || 0 },
-    { label: 'قيد المعالجة', value: stats.byStatus['in_progress'] || 0 },
-    { label: 'مغلقة', value: stats.byStatus['closed'] || 0 },
+    { label: 'إجمالي الشكاوى', value: stats.total, statusKey: '' },
+    { label: 'جديدة', value: stats.byStatus['new'] || 0, statusKey: 'new' },
+    { label: 'معينة', value: stats.byStatus['assigned'] || 0, statusKey: 'assigned' },
+    { label: 'قيد المعالجة', value: stats.byStatus['in_progress'] || 0, statusKey: 'in_progress' },
+    { label: 'مغلقة', value: stats.byStatus['closed'] || 0, statusKey: 'closed' },
   ];
 
   return (
@@ -65,7 +65,19 @@ export default function AdminDashboard() {
 
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 mb-6">
         {statItems.map((item, i) => (
-          <div key={i} className="stat-card" style={{ background: STAT_COLORS[i] }}>
+          <div
+            key={i}
+            className="stat-card"
+            style={{
+              background: STAT_COLORS[i],
+              cursor: 'pointer',
+              outline: filters.status === item.statusKey ? '3px solid rgba(255,255,255,0.8)' : 'none',
+              transform: filters.status === item.statusKey ? 'translateY(-2px)' : undefined,
+              transition: 'transform 0.15s, outline 0.15s',
+            }}
+            onClick={() => setFilters({ ...filters, status: item.statusKey })}
+            title={item.label}
+          >
             <p className="stat-label">{item.label}</p>
             <p className="stat-value">{item.value}</p>
           </div>

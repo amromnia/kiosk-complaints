@@ -30,7 +30,13 @@ const userLinks = [
   {
     section: 'الرئيسية',
     items: [
-      { href: '/dashboard/user', label: 'الشكاوى المكلف بها', icon: 'complaints' },
+      { href: '/dashboard/user', label: 'لوحة التحكم', icon: 'dashboard' },
+      { href: '/dashboard/user/complaints', label: 'الشكاوى', icon: 'complaints' },
+    ],
+  },
+  {
+    section: 'الحساب',
+    items: [
       { href: '/dashboard/user/profile', label: 'الملف الشخصي', icon: 'profile' },
     ],
   },

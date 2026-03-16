@@ -45,24 +45,36 @@ export default function UserDashboard() {
   };
 
   const statItems = [
-    { label: 'إجمالي المكلف بها', value: stats.activeTotal },
-    { label: 'قيد المعالجة', value: stats.byStatus['in_progress'] || 0 },
-    { label: 'محلولة', value: stats.byStatus['resolved'] || 0 },
-    { label: 'مغلقة', value: stats.byStatus['closed'] || 0 },
+    { label: 'إجمالي المكلف بها', value: stats.activeTotal, statusKey: '' },
+    { label: 'قيد المعالجة', value: stats.byStatus['in_progress'] || 0, statusKey: 'in_progress' },
+    { label: 'محلولة', value: stats.byStatus['resolved'] || 0, statusKey: 'resolved' },
+    { label: 'مغلقة', value: stats.byStatus['closed'] || 0, statusKey: 'closed' },
   ];
 
   return (
     <>
       <div className="page-header">
         <div>
-          <h1>الشكاوى المكلف بها</h1>
-          <p className="text-sm" style={{ color: 'var(--color-text-muted)' }}>هذه هي الشكاوى المكلف بمعالجتها</p>
+          <h1>لوحة التحكم</h1>
+          <p className="text-sm" style={{ color: 'var(--color-text-muted)' }}>نظرة عامة على الشكاوى المكلف بها</p>
         </div>
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         {statItems.map((item, i) => (
-          <div key={i} className="stat-card" style={{ background: STAT_COLORS[i] }}>
+          <div
+            key={i}
+            className="stat-card"
+            style={{
+              background: STAT_COLORS[i],
+              cursor: 'pointer',
+              outline: filters.status === item.statusKey ? '3px solid rgba(255,255,255,0.8)' : 'none',
+              transform: filters.status === item.statusKey ? 'translateY(-2px)' : undefined,
+              transition: 'transform 0.15s, outline 0.15s',
+            }}
+            onClick={() => setFilters({ ...filters, status: item.statusKey })}
+            title={item.label}
+          >
             <p className="stat-label">{item.label}</p>
             <p className="stat-value">{item.value}</p>
           </div>
