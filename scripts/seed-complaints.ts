@@ -51,20 +51,20 @@ async function seedComplaints() {
     const stmt = db.prepare(`
       INSERT INTO complaints (
         reference_number,
-        client_phone, 
-        client_national_id, 
-        client_name, 
-        complaint_type_id, 
-        description, 
-        kiosk_id, 
-        status, 
+        client_phone,
+        client_national_id,
+        client_name,
+        complaint_type_id,
+        description,
+        kiosk_id,
+        status,
         priority,
         assigned_user_id,
         created_at,
         closed_at
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
-    
+
     const checkRefStmt = db.prepare('SELECT COUNT(*) as count FROM complaints WHERE reference_number = ?');
 
     let count = 0;
@@ -79,35 +79,35 @@ async function seedComplaints() {
         if (result.count === 0) break;
         attempts++;
       } while (attempts < 10);
-      
+
       if (attempts >= 10) {
         console.error('❌ Failed to generate unique reference number');
         continue;
       }
-      
+
       // Generate random data
       const firstName = randomItem(firstNames);
       const lastName = randomItem(lastNames);
       const clientName = `${firstName} ${lastName}`;
       const clientPhone = `0${Math.floor(1000000000 + Math.random() * 900000000)}`;
       const clientNationalId = `${Math.floor(10000000000000 + Math.random() * 90000000000000)}`;
-      
+
       const complaintTypeId = randomItem(complaintTypes).id;
       const description = randomItem(descriptions);
       const kioskId = randomItem(kiosks).id;
       const status = randomItem(statuses);
       const priority = randomItem(priorities);
-      
+
       // Assign to user if status is not 'new'
-      const assignedUserId = (status !== 'new' && users.length > 0) 
-        ? randomItem(users).id 
+      const assignedUserId = (status !== 'new' && users.length > 0)
+        ? randomItem(users).id
         : null;
-      
+
       const createdAt = randomDate(30);
-      
+
       // Set closed_at if status is 'closed'
-      const closedAt = status === 'closed' 
-        ? randomDate(15) 
+      const closedAt = status === 'closed'
+        ? randomDate(15)
         : null;
 
       stmt.run(
@@ -129,14 +129,14 @@ async function seedComplaints() {
     }
 
     console.log(`✅ Successfully added ${count} random complaints for testing`);
-    
+
     // Show summary
     const summary = db.prepare(`
-      SELECT status, COUNT(*) as count 
-      FROM complaints 
+      SELECT status, COUNT(*) as count
+      FROM complaints
       GROUP BY status
     `).all();
-    
+
     console.log('\n📊 Complaints Summary:');
     summary.forEach((row: any) => {
       console.log(`   ${row.status}: ${row.count}`);
@@ -147,5 +147,11 @@ async function seedComplaints() {
   }
 }
 
-// Run the seed function
+// Block execution in production unless --force is passed
+if (process.env.NODE_ENV === 'production' && !process.argv.includes('--force')) {
+  console.error('❌ seed-complaints is disabled in production.');
+  console.error('   Pass --force to run it anyway: npm run seed-complaints -- --force');
+  process.exit(1);
+}
+
 seedComplaints();

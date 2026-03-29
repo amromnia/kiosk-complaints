@@ -36,7 +36,7 @@
 npm install
 
 # إنشاء قاعدة البيانات
-npm run init-db
+npm run init-db -- --email admin@example.com --password MySecurePass!
 
 # تشغيل التطبيق
 npm run dev
@@ -45,9 +45,7 @@ npm run dev
 ### 2. تسجيل الدخول كمسؤول
 
 - انتقل إلى: `http://localhost:3000/login`
-- استخدم البيانات الافتراضية:
-  - البريد: `admin@traffic.gov.eg`
-  - كلمة المرور: `Admin@123!`
+- استخدم البريد وكلمة المرور التي حددتهما عند تشغيل `init-db`
 
 ### 3. إعداد الموظفين
 

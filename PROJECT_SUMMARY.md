@@ -149,13 +149,12 @@ kiosk-complaints/
 ### بدء سريع:
 ```bash
 npm install
-npm run init-db
+npm run init-db -- --email admin@example.com --password MySecurePass!
 npm run dev
 ```
 
 ### تسجيل الدخول:
-- **البريد:** admin@traffic.gov.eg
-- **كلمة المرور:** Admin@123!
+- استخدم البريد وكلمة المرور التي حددتهما عند تشغيل `init-db`
 
 ### الوصول:
 - **الموقع:** http://localhost:3000

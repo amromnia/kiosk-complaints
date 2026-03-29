@@ -90,7 +90,7 @@ cd kiosk-complaints
 ```bash
 cd /var/www/kiosk-complaints
 npm install --production
-npm run init-db
+npm run init-db -- --email admin@example.com --password YourSecurePassword!
 npm run build
 ```
 

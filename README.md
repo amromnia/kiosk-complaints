@@ -50,18 +50,21 @@ npm install
 ### 3. إنشاء قاعدة البيانات
 
 ```bash
-npm run init-db
+npm run init-db -- --email <email> --password <password>
+```
+
+مثال:
+```bash
+npm run init-db -- --email admin@example.com --password MySecurePass!
 ```
 
 سيتم إنشاء:
 - قاعدة بيانات SQLite3
-- مستخدم مسؤول افتراضي
+- مستخدم مسؤول بالبيانات المُدخلة
 - أنواع الشكاوى
 - بيانات الماكينات
 
-**بيانات تسجيل الدخول الافتراضية:**
-- البريد الإلكتروني: `admin@traffic.gov.eg`
-- كلمة المرور: `Admin@123!`
+> **ملاحظة:** يجب تحديد `--email` و`--password` عند تشغيل الأمر، وإلا سيفشل.
 
 ### 4. تشغيل التطبيق
 

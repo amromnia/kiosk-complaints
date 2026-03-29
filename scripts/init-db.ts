@@ -4,6 +4,21 @@ import fs from 'fs';
 import path from 'path';
 
 async function init() {
+  const args = process.argv.slice(2);
+  const getArg = (flag: string) => {
+    const idx = args.indexOf(flag);
+    return idx !== -1 ? args[idx + 1] : undefined;
+  };
+
+  const adminEmail = getArg('--email');
+  const adminPassword = getArg('--password');
+
+  if (!adminEmail || !adminPassword) {
+    console.error('❌ Missing required arguments.');
+    console.error('   Usage: npm run init-db -- --email <email> --password <password>');
+    process.exit(1);
+  }
+
   console.log('🚀 Initializing Kiosk Complaint System...\n');
   
   // Create data directory
@@ -24,7 +39,7 @@ async function init() {
   initDatabase();
   
   // Seed database
-  await seedDatabase();
+  await seedDatabase(adminEmail, adminPassword);
   
   console.log('\n✅ System initialization complete!');
   console.log('\nYou can now start the development server with: npm run dev');

@@ -9,18 +9,25 @@ npm install
 
 ### 2. إنشاء قاعدة البيانات
 ```bash
-npm run init-db
+npm run init-db -- --email <email> --password <password>
+```
+
+مثال:
+```bash
+npm run init-db -- --email admin@example.com --password MySecurePass!
 ```
 
 ستحصل على:
 ```
 ✅ Database schema initialized successfully
-✅ Admin user created
-   Email: admin@traffic.gov.eg
-   Password: Admin@123!
+✅ SuperAdmin user created
+   Email: admin@example.com
+   Role: superadmin
 ✅ Complaint types seeded
 ✅ Kiosks seeded
 ```
+
+> **ملاحظة:** يجب تحديد `--email` و`--password` عند تشغيل الأمر، وإلا سيفشل.
 
 ### 3. تشغيل التطبيق
 ```bash
@@ -31,9 +38,7 @@ npm run dev
 
 ### 4. تسجيل الدخول
 
-استخدم الحساب الافتراضي:
-- **البريد الإلكتروني:** admin@traffic.gov.eg
-- **كلمة المرور:** Admin@123!
+استخدم البيانات التي أدخلتها عند تشغيل `init-db`.
 
 ---
 
@@ -143,7 +148,7 @@ SELECT location, unique_link FROM kiosks;
 npm install
 
 # تأكد من وجود قاعدة البيانات
-npm run init-db
+npm run init-db -- --email admin@example.com --password MySecurePass!
 
 # اعد تشغيل الخادم
 npm run dev
@@ -155,12 +160,11 @@ npm run dev
 rm -rf data/
 
 # أعد إنشائها
-npm run init-db
+npm run init-db -- --email admin@example.com --password MySecurePass!
 ```
 
 ### لا يمكن تسجيل الدخول
-- تأكد من البريد: `admin@traffic.gov.eg`
-- تأكد من كلمة المرور: `Admin@123!`
+- تأكد من البريد وكلمة المرور التي استخدمتها عند تشغيل `init-db`
 - تأكد من عدم وجود مسافات إضافية
 
 ---
