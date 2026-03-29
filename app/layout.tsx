@@ -4,6 +4,9 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "نظام شكاوى ماكينات التجديد الذاتي - وزارة الداخلية",
   description: "نظام إدارة شكاوى ماكينات تجديد رخص تسيير المركبات",
+  appleWebApp: {
+    title: "Kiosk Complaints",
+  },
 };
 
 export default function RootLayout({
