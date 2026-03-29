@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -44,12 +45,8 @@ export default function LoginPage() {
           <div className="p-6 sm:p-8 md:p-10">
             {/* Emblem */}
             <div className="flex flex-col items-center mb-8">
-              <div className="w-20 h-20 rounded-full flex items-center justify-center mb-4"
-                   style={{ background: 'linear-gradient(135deg, #1b2a4a 0%, #243660 100%)', boxShadow: '0 8px 24px rgba(27,42,74,0.3)' }}>
-                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M12 2L3 7v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-9-5z"/>
-                  <path d="M9 12l2 2 4-4"/>
-                </svg>
+              <div className="mb-4">
+                <Image src="/traffic-logo.png" alt="وزارة الداخلية" width={80} height={80} style={{ borderRadius: '50%' }} priority />
               </div>
               <h1 className="text-2xl font-bold text-center" style={{ color: '#1b2a4a' }}>نظام إدارة الشكاوى</h1>
               <p className="text-sm mt-2 text-center" style={{ color: '#64748b' }}>وزارة الداخلية — جمهورية مصر العربية</p>

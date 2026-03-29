@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
+import Image from 'next/image';
 
 interface ComplaintType {
   id: number;
@@ -393,8 +394,8 @@ export default function ComplaintPage() {
         <div className="container-app">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.12)' }}>
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.5"><path d="M12 2L3 7v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-9-5z"/></svg>
+              <div className="w-10 h-10 rounded-full flex items-center justify-center overflow-hidden" style={{ background: 'rgba(255,255,255,0.12)' }}>
+                <Image src="/traffic-logo.png" alt="وزارة الداخلية" width={40} height={40} style={{ objectFit: 'cover', borderRadius: '50%' }} />
               </div>
               <div>
                 <p className="font-medium">وزارة الداخلية</p>
@@ -419,8 +420,8 @@ function Header({ kioskLocation }: { kioskLocation: string | null }) {
       <div className="container-app">
         <div className="flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-4">
-            <div className="w-16 h-16 rounded-full flex items-center justify-center" style={{ background: 'rgba(200,168,78,0.2)', border: '2px solid var(--color-gold)' }}>
-              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--color-gold)" strokeWidth="1.5"><path d="M12 2L3 7v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-9-5z"/></svg>
+            <div className="w-16 h-16 rounded-full flex items-center justify-center overflow-hidden" style={{ background: 'rgba(200,168,78,0.2)', border: '2px solid var(--color-gold)' }}>
+              <Image src="/traffic-logo.png" alt="وزارة الداخلية" width={64} height={64} style={{ objectFit: 'cover', borderRadius: '50%' }} />
             </div>
             <div>
               <h1 className="text-2xl md:text-3xl font-bold mb-1">نظام شكاوى ماكينات التجديد الذاتي</h1>

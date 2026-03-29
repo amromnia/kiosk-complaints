@@ -1,6 +1,7 @@
 'use client';
 
 import { usePathname, useRouter } from 'next/navigation';
+import Image from 'next/image';
 
 interface SidebarProps {
   user: { name: string; email: string; role: string };
@@ -80,8 +81,8 @@ export default function DashboardSidebar({ user, open, onClose }: SidebarProps) 
       <aside className={`sidebar ${open ? 'open' : ''}`}>
         {/* Brand */}
         <div className="sidebar-brand">
-          <div className="brand-icon">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.5"><path d="M12 2L3 7v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-9-5z"/></svg>
+          <div className="brand-icon" style={{ background: 'none', overflow: 'hidden' }}>
+            <Image src="/traffic-logo.png" alt="شعار وزارة الداخلية" width={40} height={40} style={{ objectFit: 'cover', borderRadius: '10px' }} />
           </div>
           <div className="brand-text">
             <h2>نظام الشكاوى</h2>
