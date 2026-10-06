@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { formatDate, STATUS_LABELS_AR, PRIORITY_LABELS_AR } from '@/lib/utils/constants';
+import ComplaintTypeFilters from '@/components/ComplaintTypeFilters';
 import DataTable from '@/components/DataTable';
 
 export default function AdminComplaintsPage() {
@@ -12,7 +13,7 @@ export default function AdminComplaintsPage() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(true);
-  const [filters, setFilters] = useState({ status: '', priority: '', kiosk_id: '', search: '' });
+  const [filters, setFilters] = useState({ complaint_type_id: '', complaint_subtype_id: '', status: '', priority: '', kiosk_id: '', search: '' });
   const [kiosks, setKiosks] = useState<any[]>([]);
 
   useEffect(() => { 
@@ -35,6 +36,8 @@ export default function AdminComplaintsPage() {
       const params = new URLSearchParams();
       params.append('page', page.toString());
       params.append('pageSize', '20');
+      if (filters.complaint_type_id) params.append('complaint_type_id', filters.complaint_type_id);
+      if (filters.complaint_subtype_id) params.append('complaint_subtype_id', filters.complaint_subtype_id);
       if (filters.status) params.append('status', filters.status);
       if (filters.priority) params.append('priority', filters.priority);
       if (filters.kiosk_id) params.append('kiosk_id', filters.kiosk_id);
@@ -61,7 +64,9 @@ export default function AdminComplaintsPage() {
         </div>
       )
     },
-    { key: 'type_name', label: 'النوع' },
+    { key: 'category_name', label: 'النوع' },
+    { key: 'subtype_name', label: 'النوع الفرعي', render: (item: any) => item.subtype_name || '—' },
+    { key: 'type_name', label: 'تفاصيل النوع' },
     { 
       key: 'priority', 
       label: 'الأولوية',
@@ -95,6 +100,7 @@ export default function AdminComplaintsPage() {
       <div className="card mb-6">
         <h3 className="text-base font-bold mb-3" style={{ color: 'var(--color-navy)' }}>تصفية النتائج</h3>
         <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+          <ComplaintTypeFilters typeId={filters.complaint_type_id} subtypeId={filters.complaint_subtype_id} onChange={(complaint_type_id, complaint_subtype_id) => { setFilters({ ...filters, complaint_type_id, complaint_subtype_id }); setPage(1); }} />
           <div>
             <label className="form-label">الحالة</label>
             <select className="form-input" value={filters.status} onChange={e => { setFilters({ ...filters, status: e.target.value }); setPage(1); }}>

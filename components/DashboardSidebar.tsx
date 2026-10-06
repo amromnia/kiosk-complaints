@@ -15,6 +15,7 @@ const adminLinks = [
     items: [
       { href: '/dashboard/admin', label: 'لوحة التحكم', icon: 'dashboard' },
       { href: '/dashboard/admin/complaints', label: 'الشكاوى', icon: 'complaints' },
+      { href: '/dashboard/admin/analytics', label: 'التحليلات', icon: 'analytics' },
     ],
   },
   {
@@ -33,6 +34,7 @@ const userLinks = [
     items: [
       { href: '/dashboard/user', label: 'لوحة التحكم', icon: 'dashboard' },
       { href: '/dashboard/user/complaints', label: 'الشكاوى', icon: 'complaints' },
+      { href: '/dashboard/user/analytics', label: 'تحليلات الأداء', icon: 'analytics' },
     ],
   },
   {
@@ -46,6 +48,7 @@ const userLinks = [
 function NavIcon({ name }: { name: string }) {
   const props = { width: 20, height: 20, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 1.75, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const };
   switch (name) {
+    case 'analytics': return <svg {...props}><path d="M3 3v18h18"/><path d="M7 17v-5m5 5V7m5 10V4"/></svg>;
     case 'dashboard': return <svg {...props}><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>;
     case 'complaints': return <svg {...props}><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="2"/><path d="M9 14l2 2 4-4"/></svg>;
     case 'users': return <svg {...props}><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>;

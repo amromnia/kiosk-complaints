@@ -1,5 +1,6 @@
 'use client';
 
+import ComplaintAnalytics from '@/components/ComplaintAnalytics';
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { formatDate } from '@/lib/utils/constants';
@@ -263,6 +264,8 @@ export default function UserProfilePage() {
               <p className="text-xs opacity-80">ساعة</p>
             </div>
           </div>
+
+          <ComplaintAnalytics employeeId={Number(user.id)} />
 
           {/* Complaints Table */}
           <div className="card">

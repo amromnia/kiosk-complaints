@@ -1,6 +1,7 @@
 import Database from 'better-sqlite3';
 import path from 'path';
 import fs from 'fs';
+import { ensureAnalyticsIndexes } from './analytics-indexes';
 
 // Ensure data directory exists
 const dataDir = path.join(process.cwd(), 'data');
@@ -203,6 +204,7 @@ export const initDatabase = () => {
   `);
 
   // ==================== INDEXES FOR PERFORMANCE ====================
+  ensureAnalyticsIndexes(db);
   
   // Complaints table indexes - most frequently queried table
   db.exec(`CREATE INDEX IF NOT EXISTS idx_complaints_status ON complaints(status)`);

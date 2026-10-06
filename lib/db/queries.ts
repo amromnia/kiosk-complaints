@@ -573,6 +573,7 @@ export const getComplaintsPaginated = (filters?: {
   priority?: string;
   assigned_user_id?: number;
   complaint_type_id?: number;
+  complaint_subtype_id?: number;
   kiosk_id?: number;
   date_from?: string;
   date_to?: string;
@@ -616,10 +617,14 @@ export const getComplaintsPaginated = (filters?: {
     SELECT 
       c.*,
       ct.name_ar as type_name,
+      COALESCE(grandparent.name_ar, parent.name_ar, ct.name_ar) as category_name,
+      CASE WHEN grandparent.id IS NOT NULL THEN parent.name_ar WHEN parent.id IS NOT NULL THEN ct.name_ar END as subtype_name,
       k.location as kiosk_location,
       u.name as assigned_user_name
     FROM complaints c
     LEFT JOIN complaint_types ct ON c.complaint_type_id = ct.id
+    LEFT JOIN complaint_types parent ON ct.parent_id = parent.id
+    LEFT JOIN complaint_types grandparent ON parent.parent_id = grandparent.id
     LEFT JOIN kiosks k ON c.kiosk_id = k.id
     LEFT JOIN users u ON c.assigned_user_id = u.id
     WHERE 1=1
@@ -654,10 +659,19 @@ export const getComplaintsPaginated = (filters?: {
     params.push(filters.assigned_user_id);
   }
 
-  if (filters?.complaint_type_id) {
-    query += ' AND c.complaint_type_id = ?';
-    countQuery += ' AND c.complaint_type_id = ?';
-    params.push(filters.complaint_type_id);
+  for (const typeId of [filters?.complaint_type_id, filters?.complaint_subtype_id]) {
+    if (typeId !== undefined) {
+      if (!Number.isSafeInteger(typeId) || typeId < 1) throw new Error('Invalid complaint type');
+      const clause = ` AND c.complaint_type_id IN (
+        WITH RECURSIVE descendants(id) AS (
+          SELECT id FROM complaint_types WHERE id = ?
+          UNION ALL SELECT ct.id FROM complaint_types ct JOIN descendants d ON ct.parent_id = d.id
+        ) SELECT id FROM descendants
+      )`;
+      query += clause;
+      countQuery += clause;
+      params.push(typeId);
+    }
   }
 
   if (filters?.kiosk_id) {
