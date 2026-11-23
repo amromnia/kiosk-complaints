@@ -15,11 +15,17 @@ export default function UserDashboard() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [complaints, setComplaints] = useState<any[]>([]);
+  const [total, setTotal] = useState(0);
+  const [error, setError] = useState(false);
   const [stats, setStats] = useState({ activeTotal: 0, byStatus: {} as Record<string, number> });
-  const [filters, setFilters] = useState({ status: 'open', search: '' });
+  const [filters, setFilters] = useState({ status: 'open', month: '', search: '' });
 
   useEffect(() => { fetchStats(); }, []);
-  useEffect(() => { fetchComplaints(); }, [filters]);
+  useEffect(() => {
+    const controller = new AbortController();
+    fetchComplaints(controller.signal);
+    return () => controller.abort();
+  }, [filters]);
 
   const fetchStats = async () => {
     try {
@@ -30,18 +36,23 @@ export default function UserDashboard() {
     } catch (err) { console.error(err); }
   };
 
-  const fetchComplaints = async () => {
+  const fetchComplaints = async (signal: AbortSignal) => {
     setLoading(true);
+    setError(false);
     try {
       const params = new URLSearchParams();
       if (filters.status) params.append('status', filters.status);
+      if (filters.month) params.append('month', filters.month);
       if (filters.search) params.append('search', filters.search);
-      const res = await fetch(`/api/complaints?${params}`);
-      if (!res.ok) return;
+      const res = await fetch(`/api/complaints?${params}`, { signal });
+      if (!res.ok) throw new Error('Failed to load complaints');
       const data = await res.json();
+      if (signal.aborted) return;
       setComplaints(data.complaints || []);
-    } catch (err) { console.error(err); }
-    finally { setLoading(false); }
+      setTotal(data.total);
+    } catch (err) {
+      if (!signal.aborted) { console.error(err); setError(true); }
+    } finally { if (!signal.aborted) setLoading(false); }
   };
 
   const statItems = [
@@ -82,7 +93,10 @@ export default function UserDashboard() {
       </div>
 
       <div className="card mb-6">
-        <h3 className="text-base font-bold mb-3" style={{ color: 'var(--color-navy)' }}>تصفية النتائج</h3>
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-base font-bold" style={{ color: 'var(--color-navy)' }}>تصفية النتائج</h3>
+          {!loading && !error && <span className="badge badge-primary">عدد الشكاوى المطابقة: {total}</span>}
+        </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className="form-label">الحالة</label>
@@ -97,13 +111,20 @@ export default function UserDashboard() {
             </select>
           </div>
           <div>
+            <label className="form-label" htmlFor="complaint-month">شهر تقديم الشكوى</label>
+            <input id="complaint-month" type="month" className="form-input" value={filters.month} onChange={e => setFilters({ ...filters, month: e.target.value })} />
+          </div>
+          <div>
             <label className="form-label">بحث</label>
             <input type="text" className="form-input" placeholder="رقم الشكوى، الاسم، الهاتف..." value={filters.search} onChange={e => setFilters({...filters, search: e.target.value})} />
           </div>
         </div>
+        {!loading && !error && total > 20 && <p className="text-sm mt-4">عرض أحدث 20 شكوى مطابقة</p>}
       </div>
 
-      {loading ? (
+      {error ? (
+        <p role="alert">تعذر تحميل الشكاوى</p>
+      ) : loading ? (
         <div className="empty-state"><div className="spinner spinner-dark spinner-lg"></div></div>
       ) : complaints.length === 0 ? (
         <div className="empty-state">

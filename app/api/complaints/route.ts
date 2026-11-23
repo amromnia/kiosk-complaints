@@ -8,6 +8,10 @@ export async function GET(request: NextRequest) {
   try {
     const session = await requireAuth();
     const { searchParams } = new URL(request.url);
+    const month = searchParams.get('month') || undefined;
+    if (month && (!/^\d{4}-(0[1-9]|1[0-2])$/.test(month) || month.startsWith('0000-'))) {
+      return NextResponse.json({ error: 'الشهر غير صالح' }, { status: 400 });
+    }
     
     const filters = {
       status: searchParams.get('status') || undefined,
@@ -18,6 +22,7 @@ export async function GET(request: NextRequest) {
       kiosk_id: searchParams.get('kiosk_id') ? parseInt(searchParams.get('kiosk_id')!) : undefined,
       date_from: searchParams.get('date_from') || undefined,
       date_to: searchParams.get('date_to') || undefined,
+      month,
       search: searchParams.get('search') || undefined,
       page: searchParams.get('page') ? parseInt(searchParams.get('page')!) : 1,
       pageSize: searchParams.get('pageSize') ? parseInt(searchParams.get('pageSize')!) : 20,
