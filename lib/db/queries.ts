@@ -577,6 +577,7 @@ export const getComplaintsPaginated = (filters?: {
   kiosk_id?: number;
   date_from?: string;
   date_to?: string;
+  month?: string;
   search?: string;
   page?: number;
   pageSize?: number;
@@ -606,6 +607,9 @@ export const getComplaintsPaginated = (filters?: {
     }
     if (filters.priority !== undefined && typeof filters.priority !== 'string') {
       throw new Error('Invalid priority');
+    }
+    if (filters.month !== undefined && (!/^\d{4}-(0[1-9]|1[0-2])$/.test(filters.month) || filters.month.startsWith('0000-'))) {
+      throw new Error('Invalid month');
     }
   }
 
@@ -692,6 +696,19 @@ export const getComplaintsPaginated = (filters?: {
     query += ' AND c.created_at <= ?';
     countQuery += ' AND c.created_at <= ?';
     params.push(filters.date_to + ' 23:59:59');
+  }
+
+  if (filters?.month) {
+    const [year, month] = filters.month.split('-').map(Number);
+    const end = year === 9999 && month === 12
+      ? '9999-12-32'
+      : month === 12
+        ? `${String(year + 1).padStart(4, '0')}-01-01`
+        : `${String(year).padStart(4, '0')}-${String(month + 1).padStart(2, '0')}-01`;
+    const clause = ' AND c.created_at >= ? AND c.created_at < ?';
+    query += clause;
+    countQuery += clause;
+    params.push(`${filters.month}-01`, end);
   }
 
   if (filters?.search) {

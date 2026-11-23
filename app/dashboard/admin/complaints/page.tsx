@@ -13,14 +13,19 @@ export default function AdminComplaintsPage() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(true);
-  const [filters, setFilters] = useState({ complaint_type_id: '', complaint_subtype_id: '', status: '', priority: '', kiosk_id: '', search: '' });
+  const [filters, setFilters] = useState({ complaint_type_id: '', complaint_subtype_id: '', status: '', priority: '', kiosk_id: '', month: '', search: '' });
+  const [error, setError] = useState(false);
   const [kiosks, setKiosks] = useState<any[]>([]);
 
   useEffect(() => { 
     fetchKiosks();
   }, []);
 
-  useEffect(() => { fetchComplaints(); }, [page, filters]);
+  useEffect(() => {
+    const controller = new AbortController();
+    fetchComplaints(controller.signal);
+    return () => controller.abort();
+  }, [page, filters]);
 
   const fetchKiosks = async () => {
     try {
@@ -30,8 +35,9 @@ export default function AdminComplaintsPage() {
     } catch (err) { console.error(err); }
   };
 
-  const fetchComplaints = async () => {
+  const fetchComplaints = async (signal: AbortSignal) => {
     setLoading(true);
+    setError(false);
     try {
       const params = new URLSearchParams();
       params.append('page', page.toString());
@@ -41,15 +47,19 @@ export default function AdminComplaintsPage() {
       if (filters.status) params.append('status', filters.status);
       if (filters.priority) params.append('priority', filters.priority);
       if (filters.kiosk_id) params.append('kiosk_id', filters.kiosk_id);
+      if (filters.month) params.append('month', filters.month);
       if (filters.search) params.append('search', filters.search);
       
-      const res = await fetch(`/api/complaints?${params}`);
+      const res = await fetch(`/api/complaints?${params}`, { signal });
+      if (!res.ok) throw new Error('Failed to load complaints');
       const result = await res.json();
+      if (signal.aborted) return;
       setData(result.complaints || []);
       setTotal(result.total || 0);
       setTotalPages(result.totalPages || 1);
-    } catch (err) { console.error(err); }
-    finally { setLoading(false); }
+    } catch (err) {
+      if (!signal.aborted) { console.error(err); setError(true); }
+    } finally { if (!signal.aborted) setLoading(false); }
   };
 
   const columns = [
@@ -93,7 +103,7 @@ export default function AdminComplaintsPage() {
           <h1>جميع الشكاوى</h1>
           <p className="text-sm" style={{ color: 'var(--color-text-muted)' }}>عرض وإدارة جميع الشكاوى المقدمة عبر الماكينات</p>
         </div>
-        <span className="badge badge-primary" style={{ fontSize: '0.9rem', padding: '6px 14px' }}>{total} شكوى</span>
+        {!loading && !error && <span className="badge badge-primary" style={{ fontSize: '0.9rem', padding: '6px 14px' }}>عدد الشكاوى المطابقة: {total}</span>}
       </div>
 
       {/* Filters */}
@@ -123,13 +133,17 @@ export default function AdminComplaintsPage() {
             </select>
           </div>
           <div>
+            <label className="form-label" htmlFor="complaint-month">شهر تقديم الشكوى</label>
+            <input id="complaint-month" type="month" className="form-input" value={filters.month} onChange={e => { setFilters({ ...filters, month: e.target.value }); setPage(1); }} />
+          </div>
+          <div>
             <label className="form-label">بحث</label>
             <input type="text" className="form-input" placeholder="رقم، اسم، هاتف، نوع..." value={filters.search} onChange={e => { setFilters({ ...filters, search: e.target.value }); setPage(1); }} />
           </div>
         </div>
       </div>
 
-      <DataTable
+      {error ? <p role="alert">تعذر تحميل الشكاوى</p> : <DataTable
         data={data}
         columns={columns}
         loading={loading}
@@ -140,7 +154,7 @@ export default function AdminComplaintsPage() {
         pageSize={20}
         onPageChange={setPage}
         emptyMessage="لا توجد شكاوى مطابقة للتصفية"
-      />
+      />}
     </>
   );
 }
