@@ -185,23 +185,24 @@ sudo certbot --nginx -d kiosk.traffic.gov.eg
 
 ### تحديث النظام:
 
-```bash
-cd /var/www/kiosk-complaints
-git pull
-npm install
-npm run build
-pm2 restart kiosk-complaints
-```
-
-### النسخ الاحتياطي قبل التحديث:
+1. Run `pm2 list` and identify the application's process ID.
+2. Run `pm2 describe <ID>` and find `exec cwd`.
+3. Use `cd` to navigate to that directory, then run:
 
 ```bash
-# نسخ قاعدة البيانات
-cp data/kiosk-complaints.db data/kiosk-complaints.db.backup.$(date +%Y%m%d)
-
-# نسخ الملفات
-tar -czf uploads-backup-$(date +%Y%m%d).tar.gz uploads/
+curl -fsSL https://raw.githubusercontent.com/amromnia/kiosk-complaints/refs/heads/master/update.sh | bash
 ```
+
+The repository must be public and the script must be published on `master` first.
+The update fetches the currently checked-out branch directly from
+`https://github.com/amromnia/kiosk-complaints.git` (ignoring whatever `origin`
+points to), requires a fast-forward merge, installs dependencies, builds, and
+runs `pm2 restart all`. It stops on errors or conflicting local changes rather
+than overwriting them. The database, `uploads/` and `.env.local` are untracked
+and are never touched.
+
+Confirm the output ends with **Update completed successfully.** If it does
+not, the update did not complete. The script does not roll back automatically.
 
 ## 📊 المراقبة
 
